@@ -1,0 +1,53 @@
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+**/.env
+
+**/target/
+*.jar
+*.war
+*.ear
+*.class
+
+# Maven wrapper cục bộ
+**/.mvn/
+**/mvnw
+**/mvnw.cmd
+
+# Crash logs
+hprof-headdump.hprof
+
+**/node_modules/
+node_modules/
+node_modules
+**/jspm_packages/
+
+# Thư mục build đầu ra của FE
+**/dist/
+**/build/
+**/.next/
+**/out/
+
+# Logs hệ thống của FE
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+**/.vscode/
+**/.factorypath
+*.code-workspace
+
+# IntelliJ IDEA
+**/.idea/
+*.iws
+*.iml
+*.ipr
+
+Thumbs.db
+Desktop.ini
+.DS_Store
