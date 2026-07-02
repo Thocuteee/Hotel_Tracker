@@ -29,7 +29,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserResponse register(UserCreateRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email này đã được sử dụng!");
+            throw new DuplicateResourceException("Email/Username này đã được sử dụng!");
+        }
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty() && userRepository.existsByPhone(request.getPhone())) {
+            throw new DuplicateResourceException("Số điện thoại này đã được sử dụng!");
         }
 
         User user = userMapper.toEntity(request);
@@ -41,8 +44,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với email này"));
+        String identifier = request.getEmail();
+        User user = userRepository.findByEmail(identifier)
+                .orElseGet(() -> userRepository.findByPhone(identifier)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản với email, username hoặc số điện thoại này")));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BadRequestException("Mật khẩu không chính xác");

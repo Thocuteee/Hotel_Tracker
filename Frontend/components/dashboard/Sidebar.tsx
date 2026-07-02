@@ -1,16 +1,22 @@
+"use client"
+
 import Link from 'next/link';
-import { Home, BedDouble, CalendarDays, LineChart, Users, FileText, Star, Settings, Bell, StarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Home, BedDouble, CalendarDays, LineChart, Users, FileText, Star, Settings, Bell, StarIcon, ChevronLeft, ChevronRight, UserCheck, LogOut, Globe } from 'lucide-react';
 import { Building2 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Tổng quan', href: '/', icon: Home, current: true },
-  { name: 'Quản lý phòng', href: '#', icon: BedDouble, current: false },
-  { name: 'Danh sách đặt phòng', href: '#', icon: CalendarDays, current: false },
-  { name: 'Doanh thu', href: '#', icon: LineChart, current: false },
-  { name: 'Khách hàng', href: '#', icon: Users, current: false },
-  { name: 'Báo cáo', href: '#', icon: FileText, current: false },
-  { name: 'Đánh giá', href: '#', icon: Star, current: false },
-  { name: 'Cài đặt', href: '#', icon: Settings, current: false },
+  { name: 'Tổng quan', href: '/admin', icon: Home, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
+  { name: 'Quản lý nhân viên', href: '/admin/employees', icon: UserCheck, roles: ['ADMIN'] },
+  { name: 'Quản lý phòng', href: '/admin/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
+  { name: 'Danh sách đặt phòng', href: '#', icon: CalendarDays, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Doanh thu', href: '#', icon: LineChart, roles: ['ADMIN'] },
+  { name: 'Khách hàng', href: '#', icon: Users, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Báo cáo', href: '#', icon: FileText, roles: ['ADMIN'] },
+  { name: 'Đánh giá', href: '#', icon: Star, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Về trang khách', href: '/', icon: Globe, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
+  { name: 'Cài đặt', href: '#', icon: Settings, roles: ['ADMIN'] },
 ];
 
 interface SidebarProps {
@@ -19,12 +25,52 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  const getDisplayName = () => {
+    if (!user?.email) return 'Admin User';
+    const emailPrefix = user.email.split('@')[0];
+    return emailPrefix
+      .split(/[\.\-_]/)
+      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const getUserInitials = () => {
+    const name = getDisplayName();
+    return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
+  const getRoleLabel = () => {
+    if (!user?.role) return 'Quản trị viên';
+    if (user.role === 'ADMIN') return 'Quản trị viên';
+    if (user.role === 'RECEPTIONIST') return 'Lễ tân';
+    if (user.role === 'HOUSEKEEPING') return 'Buồng phòng';
+    return 'Nhân viên';
+  };
+
   return (
-    <div className={`hidden bg-white dark:bg-[#0B0F19] md:flex md:flex-col border-r border-slate-200 dark:border-slate-800 transition-all duration-300 relative ${
+    <div className={`hidden bg-card-bg md:flex md:flex-col border-r border-border-color transition-all duration-300 relative ${
       isCollapsed ? 'w-[80px]' : 'w-[280px]'
     }`}>
       {/* Header Sidebar */}
-      <div className="flex h-20 shrink-0 items-center px-4 gap-3 justify-between border-b border-slate-100 dark:border-slate-800">
+      <div className="flex h-20 shrink-0 items-center px-4 gap-3 justify-between border-b border-border-color">
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
             <Building2 className="h-6 w-6" />
@@ -49,8 +95,11 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
       {/* Navigation */}
       <div className="flex flex-1 flex-col overflow-y-auto mt-4 scrollbar-hide">
         <nav className="flex-1 space-y-2 px-3">
-          {navigation.map((item) => {
+          {navigation
+            .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
+            .map((item) => {
             const Icon = item.icon;
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.name}
@@ -58,9 +107,9 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                 className={`group flex items-center rounded-xl py-3 text-sm font-medium transition-all ${
                   isCollapsed ? 'justify-center px-0' : 'px-4'
                 } ${
-                  item.current
-                    ? 'bg-indigo-50 dark:bg-gradient-to-r dark:from-indigo-600 dark:to-indigo-800 text-indigo-600 dark:text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-600 dark:hover:text-white'
+                  isActive
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-indigo-600 dark:hover:text-white'
                 }`}
                 title={isCollapsed ? item.name : undefined}
               >
@@ -68,7 +117,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                   className={`h-5 w-5 flex-shrink-0 transition-colors ${
                     isCollapsed ? '' : 'mr-3'
                   } ${
-                    item.current ? 'text-indigo-600 dark:text-white' : 'text-slate-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-white'
+                    isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-white'
                   }`}
                   aria-hidden="true"
                 />
@@ -102,25 +151,36 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
         )}
 
         {/* User Box */}
-        <div className={`flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 ${
+        <div className={`flex items-center justify-between rounded-2xl bg-bg-hover border border-border-color p-3 ${
           isCollapsed ? 'justify-center' : ''
         }`}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-              AU
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white uppercase">
+              {getUserInitials()}
             </div>
             {!isCollapsed && (
-              <div className="flex flex-col whitespace-nowrap animate-in fade-in duration-300">
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">Admin User</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Quản trị viên</span>
+              <div className="flex flex-col whitespace-nowrap overflow-hidden max-w-[120px] animate-in fade-in duration-300">
+                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate" title={getDisplayName()}>
+                  {getDisplayName()}
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{getRoleLabel()}</span>
               </div>
             )}
           </div>
           {!isCollapsed && (
-            <button className="text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white relative animate-in fade-in duration-300">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-slate-50 dark:ring-[#0B0F19]" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button className="p-1 text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white relative animate-in fade-in duration-300">
+                <Bell className="h-4 w-4" />
+                <span className="absolute top-1 right-1 block h-1.5 w-1.5 rounded-full bg-red-500 ring-1 ring-slate-50 dark:ring-[#0B0F19]" />
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="p-1 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 animate-in fade-in duration-300 cursor-pointer"
+                title="Đăng xuất"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </div>
