@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hotel_db
+    # Lấy thông tin từ file .env
+    env_file:
+      - ./Backend/service/.env
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./Backend/service
+      dockerfile: Dockerfile.dev
+    container_name: hotel_backend
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./Backend/service/.env
+    environment:
+      - DB_HOST=postgres
+    depends_on:
+      - postgres
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./Backend/service/src
+          target: /app/src
+        - action: rebuild
+          path: ./Backend/service/pom.xml
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.dev
+    container_name: hotel_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./Frontend
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/
+        - action: rebuild
+          path: ./Frontend/package.json
+
+volumes:
+  pgdata:

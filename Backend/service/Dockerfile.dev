@@ -1,0 +1,18 @@
+FROM eclipse-temurin:17-jdk-alpine
+
+WORKDIR /app
+
+# Copy wrapper và file pom vào trước để cache thư viện Maven
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+# Tải trước các thư viện để lần sau build nhanh hơn
+RUN ./mvnw dependency:go-offline
+
+# Copy toàn bộ mã nguồn vào
+COPY src ./src
+
+# Mở port
+EXPOSE 8080
+
+# Chạy Spring Boot ở mode development (hỗ trợ auto-reload nếu có devtools)
+CMD ["./mvnw", "spring-boot:run"]
