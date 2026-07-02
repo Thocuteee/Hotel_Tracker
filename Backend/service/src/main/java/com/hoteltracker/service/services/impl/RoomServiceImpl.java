@@ -46,6 +46,29 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    public RoomTypeResponse getRoomTypeById(Integer id) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + id));
+        return roomTypeMapper.toResponse(roomType);
+    }
+
+    @Override
+    public RoomTypeResponse updateRoomType(Integer id, RoomTypeRequest request) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + id));
+        roomType.setName(request.getName());
+        return roomTypeMapper.toResponse(roomTypeRepository.save(roomType));
+    }
+
+    @Override
+    public void deleteRoomType(Integer id) {
+        if (!roomTypeRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + id);
+        }
+        roomTypeRepository.deleteById(id);
+    }
+
+    @Override
     public RoomResponse createRoom(RoomRequest request) {
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
             throw new DuplicateResourceException("Số phòng này đã tồn tại!");
@@ -81,5 +104,28 @@ public class RoomServiceImpl implements RoomService {
         }
         
         return rooms.stream().map(roomMapper::toResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RoomResponse updateRoom(Integer id, RoomRequest request) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng với ID: " + id));
+
+        RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + request.getRoomTypeId()));
+        
+        room.setRoomNumber(request.getRoomNumber());
+        room.setRoomType(roomType);
+        room.setStatus(request.getStatus());
+
+        return roomMapper.toResponse(roomRepository.save(room));
+    }
+
+    @Override
+    public void deleteRoom(Integer id) {
+        if (!roomRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Không tìm thấy Phòng với ID: " + id);
+        }
+        roomRepository.deleteById(id);
     }
 }

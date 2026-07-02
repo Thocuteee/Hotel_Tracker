@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -63,7 +64,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
-    // 4. Xử lý lỗi Validation (từ các DTO Request có @NotBlank, @NotNull, v.v...)
+    // 4. Xử lý lỗi Validation 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
@@ -85,7 +86,23 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // 5. Xử lý các lỗi ngoại lệ không lường trước được (500 Internal Server Error)
+    // 5. Xử lý lỗi 404 (sai URL API)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            NoResourceFoundException ex, HttpServletRequest request) {
+            
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message("Đường dẫn không tồn tại: " + request.getRequestURI())
+                .path(request.getRequestURI())
+                .build();
+                
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // 6. Xử lý các lỗi ngoại lệ (500 Internal Server Error)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, HttpServletRequest request) {
@@ -94,11 +111,10 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                .message("Đã xảy ra lỗi hệ thống, vui lòng thử lại sau!") // Giấu chi tiết mã lỗi để bảo mật
+                .message("Lỗi chi tiết: " + ex.getMessage()) 
                 .path(request.getRequestURI())
                 .build();
                 
-        // TODO: Cân nhắc thêm thư viện log (như Slf4j) để log(ex.getMessage()) ở đây giúp debug
         
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }

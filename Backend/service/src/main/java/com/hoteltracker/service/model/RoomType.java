@@ -3,6 +3,8 @@ package com.hoteltracker.service.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "room_types")
@@ -27,6 +29,7 @@ public class RoomType {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSON")
     private String images;
 }

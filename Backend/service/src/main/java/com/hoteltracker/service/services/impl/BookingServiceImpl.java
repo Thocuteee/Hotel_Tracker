@@ -92,4 +92,50 @@ public class BookingServiceImpl implements BookingService {
         
         return bookingMapper.toResponse(bookingRepository.save(booking));
     }
+
+    @Override
+    public List<BookingResponse> getAllBookings() {
+        return bookingRepository.findAll().stream()
+                .map(bookingMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public BookingResponse updateBooking(Integer id, BookingRequest request) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Booking ID: " + id));
+
+        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) || 
+            request.getCheckOutDate().isEqual(request.getCheckInDate())) {
+            throw new BadRequestException("Ngày trả phòng phải sau ngày nhận phòng!");
+        }
+
+        Room room = roomRepository.findById(request.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng"));
+
+        booking.setCheckInDate(request.getCheckInDate());
+        booking.setCheckOutDate(request.getCheckOutDate());
+        booking.setNumAdults(request.getNumAdults());
+        booking.setNumChildren(request.getNumChildren());
+        booking.setSpecialRequests(request.getSpecialRequests());
+        booking.setRoom(room);
+
+        long days = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
+        BigDecimal totalPrice = room.getRoomType().getBasePrice().multiply(BigDecimal.valueOf(days));
+        booking.setTotalPrice(totalPrice);
+        
+        return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
+    @Override
+    public void deleteBooking(Integer id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Booking ID: " + id));
+        
+        Room room = booking.getRoom();
+        room.setStatus(RoomStatus.AVAILABLE);
+        roomRepository.save(room);
+
+        bookingRepository.delete(booking);
+    }
 }

@@ -9,6 +9,7 @@ import com.hoteltracker.service.exceptions.ResourceNotFoundException;
 import com.hoteltracker.service.mappers.UserMapper;
 import com.hoteltracker.service.model.User;
 import com.hoteltracker.service.repositories.UserRepository;
+import com.hoteltracker.service.security.JwtService;
 import com.hoteltracker.service.services.AuthService;
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +24,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Override
     public UserResponse register(UserCreateRequest request) {
@@ -47,8 +49,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return AuthResponse.builder()
-                .accessToken("mock-access-token") 
-                .refreshToken("mock-refresh-token")
+                .accessToken(jwtService.generateToken(user)) 
+                .refreshToken(jwtService.generateRefreshToken(user))
                 .user(userMapper.toResponse(user))
                 .build();
     }

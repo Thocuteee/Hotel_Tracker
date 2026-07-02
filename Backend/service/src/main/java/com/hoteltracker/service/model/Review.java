@@ -4,6 +4,8 @@ import com.hoteltracker.service.model.enums.Sentiment;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "reviews")
@@ -30,6 +32,7 @@ public class Review {
     @Column(name = "ai_sentiment")
     private Sentiment aiSentiment;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "ai_tags", columnDefinition = "JSON")
     private String aiTags;
 

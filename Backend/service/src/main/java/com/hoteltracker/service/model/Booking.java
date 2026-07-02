@@ -32,6 +32,15 @@ public class Booking {
     @Column(name = "check_out_date", nullable = false)
     private LocalDate checkOutDate;
 
+    @Column(name = "num_adults")
+    private Integer numAdults;
+
+    @Column(name = "num_children")
+    private Integer numChildren;
+
+    @Column(name = "special_requests", length = 500)
+    private String specialRequests;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
