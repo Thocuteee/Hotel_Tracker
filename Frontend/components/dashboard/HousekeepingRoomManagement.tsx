@@ -8,9 +8,11 @@ import {
   AlertTriangle, 
   HelpCircle,
   MoreVertical,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import api from '@/lib/api';
+import Toast, { ToastMessage } from '@/components/ui/Toast';
 
 interface CleanRoom {
   id: string;
@@ -31,18 +33,39 @@ export default function HousekeepingRoomManagement() {
   const [otherRooms, setOtherRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [completedCount, setCompletedCount] = useState(8);
+  const [updating, setUpdating] = useState(false);
   const totalCount = 20;
+
+  // Toast notifications state
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Issue reporting custom modal state
+  const [reportIssueRoomNum, setReportIssueRoomNum] = useState<string | null>(null);
+  const [issueText, setIssueText] = useState('');
 
   useEffect(() => {
     fetchRooms();
   }, []);
+
+  const showToast = (type: 'success' | 'error' | 'info', title: string, message: string) => {
+    const newToast: ToastMessage = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message
+    };
+    setToasts(prev => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   const fetchRooms = async () => {
     setLoading(true);
     try {
       const res = await api.get('/api/v1/rooms');
       
-      // Filter rooms that need cleaning (DIRTY status)
       const dirtyRooms = res.data.filter((r: any) => r.status === 'DIRTY');
       const nonDirtyRooms = res.data.filter((r: any) => r.status !== 'DIRTY');
 
@@ -81,6 +104,7 @@ export default function HousekeepingRoomManagement() {
       setOtherRooms(mappedOthers);
     } catch (e) {
       console.error(e);
+      showToast('error', 'Thất bại', 'Không thể kết nối máy chủ để tải danh sách dọn dẹp.');
     } finally {
       setLoading(false);
     }
@@ -90,11 +114,12 @@ export default function HousekeepingRoomManagement() {
     setRooms(prev => prev.map(r => 
       r.id === id ? { ...r, step: 'cleaning', priorityDetail: 'Đang thực hiện dọn dẹp' } : r
     ));
+    showToast('info', 'Bắt đầu', 'Đã ghi nhận bắt đầu dọn phòng.');
   };
 
   const handleFinishCleaning = async (room: CleanRoom) => {
+    setUpdating(true);
     try {
-      // Complete clean: update room status to AVAILABLE in backend
       await api.put(`/api/v1/rooms/${room.id}`, {
         roomNumber: room.number,
         roomTypeId: room.roomTypeId,
@@ -102,40 +127,51 @@ export default function HousekeepingRoomManagement() {
         status: 'AVAILABLE'
       });
 
-      // Update locally
       setRooms(prev => prev.map(r => 
         r.id === room.id ? { ...r, step: 'inspected', priorityDetail: 'Đã hoàn tất dọn dẹp' } : r
       ));
       setCompletedCount(c => Math.min(c + 1, totalCount));
+      showToast('success', 'Hoàn tất', `Phòng ${room.number} đã dọn dẹp xong và sẵn sàng đón khách.`);
       
-      // Refresh list after 1.5 seconds to move room to "other rooms"
       setTimeout(() => {
         fetchRooms();
       }, 1500);
 
     } catch (e) {
       console.error(e);
-      alert('Có lỗi xảy ra khi hoàn tất dọn dẹp phòng.');
+      showToast('error', 'Lỗi hoàn tất', 'Không thể cập nhật trạng thái phòng.');
+    } finally {
+      setUpdating(false);
     }
   };
 
-  const handleReportIssue = (roomNum: string) => {
-    const issue = prompt(`Nhập báo cáo sự cố cho phòng ${roomNum}:`);
-    if (issue && issue.trim()) {
-      alert(`Đã báo cáo sự cố: "${issue}" của phòng ${roomNum} lên hệ thống kỹ thuật!`);
-    }
+  const executeReportIssue = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportIssueRoomNum || !issueText.trim()) return;
+
+    showToast('success', 'Báo cáo thành công', `Đã ghi nhận sự cố: "${issueText}" tại phòng ${reportIssueRoomNum}.`);
+    setReportIssueRoomNum(null);
+    setIssueText('');
   };
 
   if (loading) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-650" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto relative">
+      
+      {/* Toast notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={removeToast} />
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -171,12 +207,18 @@ export default function HousekeepingRoomManagement() {
               return (
                 <div 
                   key={room.id}
-                  className={`p-6 rounded-3xl border shadow-sm transition-all duration-300 bg-white dark:bg-[#0B0F19] ${
+                  className={`p-6 rounded-3xl border shadow-sm transition-all duration-300 bg-white dark:bg-[#0B0F19] relative ${
                     room.priority === 'urgent' 
                       ? 'border-l-4 border-l-rose-500 border-slate-200 dark:border-slate-800' 
                       : 'border-l-4 border-l-slate-400 border-slate-200 dark:border-slate-800'
                   }`}
                 >
+                  {updating && isInspected && (
+                    <div className="absolute inset-0 bg-white/50 dark:bg-[#0B0F19]/50 flex items-center justify-center rounded-2xl z-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                    </div>
+                  )}
+
                   {/* Header row of Card */}
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                     <div className="flex items-center gap-2">
@@ -200,7 +242,7 @@ export default function HousekeepingRoomManagement() {
                   <div className="flex items-center justify-between max-w-sm mb-6 relative">
                     {/* Connect lines */}
                     <div className="absolute top-[11px] left-3 right-3 h-0.5 bg-slate-100 dark:bg-slate-800 z-0" />
-                    <div className="absolute top-[11px] left-3 h-0.5 bg-indigo-650 z-0 transition-all duration-500" 
+                    <div className="absolute top-[11px] left-3 h-0.5 bg-indigo-600 z-0 transition-all duration-500" 
                       style={{ width: isWaiting ? '0%' : isCleaning ? '50%' : '100%' }}
                     />
                     
@@ -291,7 +333,14 @@ export default function HousekeepingRoomManagement() {
                     )}
 
                     <button
-                      onClick={() => handleReportIssue(room.number)}
+                      onClick={() => {
+                        if (isCleaning) {
+                          setReportIssueRoomNum(room.number);
+                          setIssueText('');
+                        } else {
+                          showToast('info', 'Thông tin', `Xem chi tiết Phòng ${room.number} đã cập nhật.`);
+                        }
+                      }}
                       className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors cursor-pointer"
                     >
                       {isCleaning ? 'Báo cáo sự cố' : 'Xem chi tiết phòng'}
@@ -321,7 +370,7 @@ export default function HousekeepingRoomManagement() {
                   style={{ width: `${(completedCount / totalCount) * 100}%` }}
                 />
               </div>
-              <p className="text-[10px] text-indigo-100 italic pt-2">
+              <p className="text-[10px] text-indigo-100 italic pt-2 font-semibold">
                 "Làm tốt lắm! Bạn còn {totalCount - completedCount} phòng nữa để hoàn thành mục tiêu ngày."
               </p>
             </div>
@@ -341,13 +390,13 @@ export default function HousekeepingRoomManagement() {
               ].map((sup, idx) => (
                 <div key={idx} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/80">
                   <span className="text-xs font-semibold text-slate-650 dark:text-slate-350">{sup.name}</span>
-                  <span className="text-xs font-bold text-indigo-650 dark:text-indigo-400">+{sup.count}</span>
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">+{sup.count}</span>
                 </div>
               ))}
             </div>
 
             <button 
-              onClick={() => alert('Đã gửi yêu cầu thêm vật tư!')}
+              onClick={() => showToast('success', 'Gửi yêu cầu', 'Đã gửi yêu cầu vật tư thành công.')}
               className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-indigo-600/50 hover:border-indigo-600 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all cursor-pointer"
             >
               Yêu cầu thêm từ kho
@@ -393,7 +442,7 @@ export default function HousekeepingRoomManagement() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-semibold text-slate-750 dark:text-slate-350">
               {otherRooms.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-slate-400">Không có dữ liệu</td>
+                  <td colSpan={6} className="px-6 py-4 text-center text-slate-450">Không có dữ liệu</td>
                 </tr>
               ) : (
                 otherRooms.map((room) => (
@@ -412,12 +461,12 @@ export default function HousekeepingRoomManagement() {
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{room.notes}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 font-bold">
-                        <Clock className="h-3.5 w-3.5 text-indigo-650" />
+                        <Clock className="h-3.5 w-3.5 text-indigo-600" />
                         {room.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-600">
+                      <button className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-605">
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </td>
@@ -428,6 +477,63 @@ export default function HousekeepingRoomManagement() {
           </table>
         </div>
       </div>
+
+      {/* Custom Issue Report Modal */}
+      {reportIssueRoomNum && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => { setReportIssueRoomNum(null); setIssueText(''); }}
+              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-605 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Báo cáo sự cố phòng
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                Gửi thông tin hỏng hóc hoặc sự cố tại **Phòng {reportIssueRoomNum}**.
+              </p>
+            </div>
+
+            <form onSubmit={executeReportIssue} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  Chi tiết sự cố *
+                </label>
+                <textarea
+                  value={issueText}
+                  onChange={(e) => setIssueText(e.target.value)}
+                  placeholder="Ví dụ: Vòi sen bị hỏng, điều hòa không lạnh, mất điện..."
+                  rows={4}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-sm text-slate-900 dark:text-slate-105 focus:border-indigo-650 focus:outline-none transition-colors resize-none"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setReportIssueRoomNum(null); setIssueText(''); }}
+                  className="flex-1 h-11 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-11 bg-indigo-650 hover:bg-indigo-600 text-xs font-bold text-white rounded-xl transition-all active:scale-[0.98] shadow-sm flex items-center justify-center"
+                >
+                  Gửi báo cáo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

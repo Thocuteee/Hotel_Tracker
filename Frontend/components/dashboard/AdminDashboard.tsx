@@ -5,6 +5,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import RecentBookingsTable from '@/components/dashboard/RecentBookingsTable';
 import { Star } from 'lucide-react';
+import PromoCarousel from '@/components/dashboard/PromoCarousel';
 
 export default function AdminDashboard() {
   const [userName, setUserName] = useState('Quản trị viên');
@@ -77,26 +78,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Hotel Banner Card */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F19] shadow-sm transition-colors duration-300">
-        <div className="relative h-24 w-36 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex-shrink-0">
-          <img
-            src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop"
-            alt="Luxury Hotel"
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <div className="space-y-1 text-center sm:text-left">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-            Luxury Hotel & Resort
-          </h3>
-          <div className="flex justify-center sm:justify-start items-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Promo Carousel */}
+      <PromoCarousel />
     </div>
   );
 }

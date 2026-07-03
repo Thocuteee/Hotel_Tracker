@@ -17,9 +17,11 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import api from '@/lib/api';
+import Toast, { ToastMessage } from '@/components/ui/Toast';
 
 interface RoomType {
   id: number;
@@ -49,10 +51,16 @@ export default function AdminRoomManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'all' | 'Deluxe King' | 'Suite Premium' | 'Standard Twin'>('all');
   
+  // Custom Toasts State
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  
+  // Delete confirm modal state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // Form states
   const [formNumber, setFormNumber] = useState('');
@@ -64,6 +72,20 @@ export default function AdminRoomManagement() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const showToast = (type: 'success' | 'error' | 'info', title: string, message: string) => {
+    const newToast: ToastMessage = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message
+    };
+    setToasts(prev => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   const getUtilitiesForType = (typeName: string): string[] => {
     switch (typeName) {
@@ -77,7 +99,6 @@ export default function AdminRoomManagement() {
 
   const seedDefaultData = async () => {
     try {
-      // 1. Seed Room Types if empty
       const defaultTypes = [
         {
           name: 'Standard Twin',
@@ -115,7 +136,6 @@ export default function AdminRoomManagement() {
         createdTypes.push(res.data);
       }
 
-      // 2. Seed Rooms
       const defaultRooms = [
         { roomNumber: '101', roomTypeId: createdTypes.find(t => t.name === 'Deluxe King')?.id, status: 'AVAILABLE', floor: 1 },
         { roomNumber: '204', roomTypeId: createdTypes.find(t => t.name === 'Suite Premium')?.id, status: 'OCCUPIED', floor: 2 },
@@ -139,7 +159,6 @@ export default function AdminRoomManagement() {
       let typesRes = await api.get('/api/v1/room-types');
       let roomsRes = await api.get('/api/v1/rooms');
 
-      // Auto seed if database is empty
       if (typesRes.data.length === 0) {
         await seedDefaultData();
         typesRes = await api.get('/api/v1/room-types');
@@ -157,14 +176,12 @@ export default function AdminRoomManagement() {
               imageUrl = parsed[0];
             }
           } catch (e) {
-            // Fallback if not valid JSON
             if (typeof r.roomType.images === 'string' && r.roomType.images.startsWith('http')) {
               imageUrl = r.roomType.images;
             }
           }
         }
 
-        // Map status
         let frontendStatus: Room['status'] = 'ready';
         if (r.status === 'OCCUPIED') frontendStatus = 'occupied';
         if (r.status === 'DIRTY') frontendStatus = 'cleaning';
@@ -186,6 +203,7 @@ export default function AdminRoomManagement() {
       setRooms(mappedRooms);
     } catch (e) {
       console.error('Error fetching room data:', e);
+      showToast('error', 'Thất bại', 'Không thể kết nối với máy chủ để tải dữ liệu phòng.');
     } finally {
       setLoading(false);
     }
@@ -212,15 +230,16 @@ export default function AdminRoomManagement() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
-      try {
-        await api.delete(`/api/v1/rooms/${id}`);
-        setRooms(prev => prev.filter(r => r.id !== id));
-      } catch (e) {
-        console.error(e);
-        alert('Không thể xóa phòng này. Vui lòng kiểm tra lại đơn đặt phòng liên quan.');
-      }
+  const executeDelete = async (id: string) => {
+    try {
+      await api.delete(`/api/v1/rooms/${id}`);
+      setRooms(prev => prev.filter(r => r.id !== id));
+      showToast('success', 'Thành công', 'Đã xóa phòng khỏi danh mục khách sạn.');
+    } catch (e) {
+      console.error(e);
+      showToast('error', 'Lỗi xóa phòng', 'Không thể xóa phòng này. Vui lòng kiểm tra lại các đơn đặt phòng đang hoạt động.');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -242,18 +261,18 @@ export default function AdminRoomManagement() {
 
     try {
       if (modalMode === 'add') {
-        const res = await api.post('/api/v1/rooms', payload);
-        const newRoom = res.data;
-        // Refetch to get complete RoomType mapping
+        await api.post('/api/v1/rooms', payload);
+        showToast('success', 'Thành công', `Đã tạo mới phòng ${formNumber} thành công.`);
         await fetchData();
       } else if (modalMode === 'edit' && selectedRoomId) {
-        await api.updateRoom || await api.put(`/api/v1/rooms/${selectedRoomId}`, payload);
+        await api.put(`/api/v1/rooms/${selectedRoomId}`, payload);
+        showToast('success', 'Thành công', `Cập nhật thông tin phòng ${formNumber} thành công.`);
         await fetchData();
       }
       setIsModalOpen(false);
     } catch (e: any) {
       console.error(e);
-      alert(e.response?.data?.message || 'Có lỗi xảy ra trong quá trình lưu thông tin phòng.');
+      showToast('error', 'Lỗi lưu dữ liệu', e.response?.data?.message || 'Có lỗi xảy ra trong quá trình cập nhật thông tin phòng.');
     } finally {
       setSubmitting(false);
     }
@@ -288,7 +307,15 @@ export default function AdminRoomManagement() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto relative">
+      
+      {/* Toast notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={removeToast} />
+        ))}
+      </div>
+
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -420,7 +447,7 @@ export default function AdminRoomManagement() {
                           <Edit3 className="h-4 w-4" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(room.id)}
+                          onClick={() => setDeleteConfirmId(room.id)}
                           className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all cursor-pointer"
                           title="Xóa phòng"
                         >
@@ -490,7 +517,7 @@ export default function AdminRoomManagement() {
           <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -532,7 +559,7 @@ export default function AdminRoomManagement() {
                 <select
                   value={formRoomTypeId}
                   onChange={(e) => setFormRoomTypeId(Number(e.target.value))}
-                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-600 focus:outline-none transition-colors cursor-pointer"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-600 focus:outline-none transition-colors cursor-pointer animate-in fade-in"
                 >
                   {roomTypes.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -566,6 +593,40 @@ export default function AdminRoomManagement() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Custom Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Xác nhận xóa phòng</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                Bạn có chắc chắn muốn xóa phòng này khỏi hệ thống? Thao tác này không thể hoàn tác.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={() => executeDelete(deleteConfirmId)}
+                className="flex-1 h-10 rounded-xl bg-rose-600 text-xs font-bold text-white hover:bg-rose-500 transition-colors shadow-sm"
+              >
+                Đồng ý xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

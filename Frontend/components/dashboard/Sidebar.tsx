@@ -132,23 +132,6 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
 
       {/* Bottom blocks */}
       <div className="p-3 mt-auto space-y-3">
-        {/* Hotel Upgrade Box */}
-        {!isCollapsed && (
-          <div className="rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 animate-in fade-in duration-300">
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Khách sạn</p>
-            <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">Luxury Hotel & Resort</p>
-            <div className="flex text-amber-400 mb-4">
-              <StarIcon className="h-3 w-3 fill-current" />
-              <StarIcon className="h-3 w-3 fill-current" />
-              <StarIcon className="h-3 w-3 fill-current" />
-              <StarIcon className="h-3 w-3 fill-current" />
-              <StarIcon className="h-3 w-3 fill-current" />
-            </div>
-            <button className="w-full rounded-lg bg-slate-200/60 dark:bg-white/10 py-2 text-xs font-semibold text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20 transition-colors">
-              Nâng cấp gói
-            </button>
-          </div>
-        )}
 
         {/* User Box */}
         <div className={`flex items-center justify-between rounded-2xl bg-bg-hover border border-border-color p-3 ${

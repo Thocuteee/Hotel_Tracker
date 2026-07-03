@@ -8,9 +8,11 @@ import {
   Wrench, 
   LogIn, 
   User, 
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import api from '@/lib/api';
+import Toast, { ToastMessage } from '@/components/ui/Toast';
 
 interface Room {
   id: string;
@@ -33,10 +35,31 @@ export default function ReceptionistRoomManagement() {
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [floorFilter, setFloorFilter] = useState<number | 'all'>('all');
   const [updating, setUpdating] = useState(false);
+  
+  // Toast notifications state
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Checkin custom modal state
+  const [checkInRoom, setCheckInRoom] = useState<Room | null>(null);
+  const [guestInputName, setGuestInputName] = useState('');
 
   useEffect(() => {
     fetchRooms();
   }, []);
+
+  const showToast = (type: 'success' | 'error' | 'info', title: string, message: string) => {
+    const newToast: ToastMessage = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message
+    };
+    setToasts(prev => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   const fetchRooms = async () => {
     setLoading(true);
@@ -49,7 +72,6 @@ export default function ReceptionistRoomManagement() {
         if (r.status === 'DIRTY') frontendStatus = 'cleaning';
         if (r.status === 'MAINTENANCE') frontendStatus = 'maintenance';
 
-        // Mock guest names and history for visual mockup consistency
         let guestName = undefined;
         if (frontendStatus === 'occupied') {
           guestName = r.roomNumber === '201' ? 'Ms. Kim Thu (VIP)' : 'Mr. Le Hoang (3 nốt)';
@@ -81,6 +103,7 @@ export default function ReceptionistRoomManagement() {
       }
     } catch (e) {
       console.error(e);
+      showToast('error', 'Thất bại', 'Không thể kết nối máy chủ để lấy thông tin sơ đồ phòng.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +124,6 @@ export default function ReceptionistRoomManagement() {
         status: statusString
       });
 
-      // Update local state
       setRooms(prev => prev.map(r => {
         if (r.id === room.id) {
           const updatedHistory = [...r.history];
@@ -125,23 +147,26 @@ export default function ReceptionistRoomManagement() {
         }
         return r;
       }));
+
+      showToast('success', 'Cập nhật thành công', `Phòng ${room.number} đã cập nhật trạng thái mới.`);
     } catch (e) {
       console.error(e);
-      alert('Có lỗi xảy ra khi cập nhật trạng thái phòng.');
+      showToast('error', 'Lỗi cập nhật', 'Không thể thay đổi trạng thái phòng. Vui lòng thử lại sau.');
     } finally {
       setUpdating(false);
+      setCheckInRoom(null);
+      setGuestInputName('');
     }
   };
 
-  const handleCheckIn = (room: Room) => {
-    const guestName = prompt("Nhập tên khách hàng để thực hiện Check-in nhanh:");
-    if (!guestName || !guestName.trim()) return;
-    handleUpdateStatus(room, 'occupied', guestName.trim());
+  const executeCheckIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkInRoom || !guestInputName.trim()) return;
+    handleUpdateStatus(checkInRoom, 'occupied', guestInputName.trim());
   };
 
   const selectedRoom = rooms.find(r => r.id === selectedRoomId) || rooms[0];
 
-  // Group rooms by floor
   const roomsByFloor = rooms.reduce((acc, room) => {
     if (floorFilter !== 'all' && room.floor !== floorFilter) return acc;
     if (!acc[room.floor]) acc[room.floor] = [];
@@ -158,7 +183,15 @@ export default function ReceptionistRoomManagement() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto relative">
+      
+      {/* Toast notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {toasts.map(t => (
+          <Toast key={t.id} toast={t} onClose={removeToast} />
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -290,8 +323,8 @@ export default function ReceptionistRoomManagement() {
             <div className="p-6 bg-white dark:bg-[#0B0F19] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors duration-300">
               <div className="text-center space-y-1 py-4 border-b border-slate-100 dark:border-slate-800 relative">
                 {updating && (
-                  <div className="absolute inset-0 bg-white/50 dark:bg-[#0B0F19]/50 flex items-center justify-center rounded-2xl">
-                    <Loader2 className="h-6 w-6 animate-spin text-indigo-650" />
+                  <div className="absolute inset-0 bg-white/50 dark:bg-[#0B0F19]/50 flex items-center justify-center rounded-2xl z-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
                   </div>
                 )}
                 <span className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400">{selectedRoom.number}</span>
@@ -305,7 +338,7 @@ export default function ReceptionistRoomManagement() {
                 <button 
                   onClick={() => handleUpdateStatus(selectedRoom, 'ready')}
                   disabled={selectedRoom.status === 'ready' || updating}
-                  className="w-full flex h-11 items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-600 dark:text-emerald-400 px-4 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all disabled:opacity-40 cursor-pointer animate-in fade-in"
+                  className="w-full flex h-11 items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-600 dark:text-emerald-400 px-4 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all disabled:opacity-40 cursor-pointer"
                 >
                   <span>Đánh dấu Sẵn sàng</span>
                   <CheckCircle2 className="h-4 w-4" />
@@ -330,7 +363,7 @@ export default function ReceptionistRoomManagement() {
                 </button>
 
                 <button 
-                  onClick={() => handleCheckIn(selectedRoom)}
+                  onClick={() => setCheckInRoom(selectedRoom)}
                   disabled={selectedRoom.status === 'occupied' || updating}
                   className="w-full flex h-11 items-center justify-between rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/10 dark:bg-indigo-950/5 text-indigo-600 dark:text-indigo-400 px-4 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-all disabled:opacity-40 cursor-pointer"
                 >
@@ -383,6 +416,65 @@ export default function ReceptionistRoomManagement() {
         )}
 
       </div>
+
+      {/* Custom Check-in Modal */}
+      {checkInRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => { setCheckInRoom(null); setGuestInputName(''); }}
+              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-605 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Gán khách lưu trú (Check-in nhanh)
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Thực hiện nhận phòng cho **Phòng {checkInRoom.number}** ({checkInRoom.type}).
+              </p>
+            </div>
+
+            <form onSubmit={executeCheckIn} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  Họ tên khách hàng *
+                </label>
+                <input
+                  type="text"
+                  value={guestInputName}
+                  onChange={(e) => setGuestInputName(e.target.value)}
+                  placeholder="Ví dụ: Mr. Nguyễn Văn A"
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-650 focus:outline-none transition-colors"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setCheckInRoom(null); setGuestInputName(''); }}
+                  className="flex-1 h-11 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 h-11 bg-indigo-650 hover:bg-indigo-600 text-xs font-bold text-white rounded-xl transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  {updating && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Xác nhận Check-in
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
