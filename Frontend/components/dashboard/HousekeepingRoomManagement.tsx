@@ -9,7 +9,11 @@ import {
   HelpCircle,
   MoreVertical,
   Loader2,
-  X
+  X,
+  Brush,
+  ChevronRight,
+  AlertOctagon,
+  Sparkles
 } from 'lucide-react';
 import api from '@/lib/api';
 import Toast, { ToastMessage } from '@/components/ui/Toast';
@@ -42,6 +46,9 @@ export default function HousekeepingRoomManagement() {
   // Issue reporting custom modal state
   const [reportIssueRoomNum, setReportIssueRoomNum] = useState<string | null>(null);
   const [issueText, setIssueText] = useState('');
+
+  // Mobile Swipe/Slide states for mock interaction
+  const [slidingRoomId, setSlidingRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRooms();
@@ -154,16 +161,8 @@ export default function HousekeepingRoomManagement() {
     setIssueText('');
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-7xl mx-auto relative">
+    <div className="space-y-6 max-w-lg mx-auto relative px-2 sm:px-4">
       
       {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
@@ -172,349 +171,210 @@ export default function HousekeepingRoomManagement() {
         ))}
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Danh sách dọn dẹp hôm nay
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Thứ Hai, 24 Tháng 5, 2024 • {rooms.length + otherRooms.length} phòng cần xử lý
-          </p>
-        </div>
-        
-        <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F19] px-4 text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors shadow-sm cursor-pointer">
-          <Filter className="h-4 w-4" />
-          Lọc danh sách
-        </button>
+      {/* Mobile Sticky Header */}
+      <div className="space-y-1 py-2">
+        <h1 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+          <Brush className="h-5 w-5 text-indigo-650" />
+          Nhiệm vụ dọn dẹp hôm nay
+        </h1>
+        <p className="text-xs text-slate-500">
+          Chạm/Vuốt để đổi trạng thái thời gian thực.
+        </p>
       </div>
 
-      {/* Main Grid split: Left cards, Right stats */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        
-        {/* Left Column: Assigned Rooms list */}
-        <div className="lg:col-span-8 space-y-6">
-          {rooms.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-3xl text-sm text-slate-500">
-              Tuyệt vời! Hiện tại không có phòng nào cần dọn dẹp.
-            </div>
-          ) : (
-            rooms.map((room) => {
-              const isWaiting = room.step === 'waiting';
-              const isCleaning = room.step === 'cleaning';
-              const isInspected = room.step === 'inspected';
-              
-              return (
-                <div 
-                  key={room.id}
-                  className={`p-6 rounded-3xl border shadow-sm transition-all duration-300 bg-white dark:bg-[#0B0F19] relative ${
-                    room.priority === 'urgent' 
-                      ? 'border-l-4 border-l-rose-500 border-slate-200 dark:border-slate-800' 
-                      : 'border-l-4 border-l-slate-400 border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  {updating && isInspected && (
-                    <div className="absolute inset-0 bg-white/50 dark:bg-[#0B0F19]/50 flex items-center justify-center rounded-2xl z-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                    </div>
-                  )}
+      {/* Progress Ring / Mini Bar */}
+      <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-md space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-bold">Tiến độ công việc</span>
+          <span className="text-sm font-black">{completedCount}/{totalCount} phòng</span>
+        </div>
+        <div className="h-3 w-full bg-indigo-750 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-emerald-450 rounded-full transition-all duration-500" 
+            style={{ width: `${(completedCount / totalCount) * 100}%` }}
+          />
+        </div>
+      </div>
 
-                  {/* Header row of Card */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg ${
-                        room.priority === 'urgent' 
-                          ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30' 
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                      }`}>
-                        {room.priority === 'urgent' ? 'Khẩn cấp' : 'Bình thường'}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">• {room.priorityDetail}</span>
-                    </div>
+      {/* Main room cards optimized for Mobile Vertical Scroll */}
+      <div className="space-y-4">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-650" />
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className="p-8 text-center bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-500">
+            Tất cả phòng được phân công đã sạch sẽ!
+          </div>
+        ) : (
+          rooms.map((room) => {
+            const isWaiting = room.step === 'waiting';
+            const isCleaning = room.step === 'cleaning';
+            const isInspected = room.step === 'inspected';
+            
+            return (
+              <div 
+                key={room.id}
+                className={`rounded-2xl border bg-white dark:bg-[#0B0F19] overflow-hidden shadow-sm transition-all duration-300 ${
+                  room.priority === 'urgent' 
+                    ? 'border-l-4 border-l-rose-500 border-slate-200 dark:border-slate-800' 
+                    : 'border-l-4 border-l-slate-400 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                
+                {/* Card Top Details */}
+                <div className="p-4 space-y-3.5">
+                  <div className="flex items-center justify-between text-[10px] font-bold">
+                    <span className={`px-2 py-0.5 rounded-md ${
+                      room.priority === 'urgent' 
+                        ? 'bg-rose-50 text-rose-600 dark:bg-rose-955/20' 
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                    }`}>
+                      {room.priority === 'urgent' ? 'CẦN DỌN GẤP' : 'DỌN THƯỜNG'}
+                    </span>
+                    <span className="text-slate-400">{room.priorityDetail}</span>
                   </div>
 
-                  {/* Title */}
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                     Phòng {room.number} — {room.type}
                   </h3>
 
-                  {/* Progress Workflow Indicator */}
-                  <div className="flex items-center justify-between max-w-sm mb-6 relative">
-                    {/* Connect lines */}
-                    <div className="absolute top-[11px] left-3 right-3 h-0.5 bg-slate-100 dark:bg-slate-800 z-0" />
-                    <div className="absolute top-[11px] left-3 h-0.5 bg-indigo-600 z-0 transition-all duration-500" 
-                      style={{ width: isWaiting ? '0%' : isCleaning ? '50%' : '100%' }}
-                    />
-                    
-                    {/* Step 1 */}
-                    <div className="flex flex-col items-center gap-1.5 relative z-10">
-                      <div className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                        isWaiting ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-indigo-600 bg-white dark:bg-[#0B0F19] text-indigo-600'
-                      }`}>
-                        <div className="h-2 w-2 rounded-full bg-current" />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500">Chờ dọn</span>
+                  {/* 3 Step Workflow */}
+                  <div className="grid grid-cols-3 gap-1 text-[10px] font-bold text-center">
+                    <div className={`py-1.5 rounded-lg border ${isWaiting ? 'bg-indigo-650 text-white border-indigo-650' : 'bg-slate-50 dark:bg-slate-900 border-transparent text-slate-400'}`}>
+                      Chờ dọn
                     </div>
-
-                    {/* Step 2 */}
-                    <div className="flex flex-col items-center gap-1.5 relative z-10">
-                      <div className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                        isCleaning ? 'border-indigo-600 bg-indigo-600 text-white' : 
-                        isInspected ? 'border-indigo-600 bg-white dark:bg-[#0B0F19] text-indigo-600' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F19] text-slate-300'
-                      }`}>
-                        <div className="h-2 w-2 rounded-full bg-current" />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500">Đang dọn</span>
+                    <div className={`py-1.5 rounded-lg border ${isCleaning ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 dark:bg-slate-900 border-transparent text-slate-400'}`}>
+                      Đang dọn
                     </div>
-
-                    {/* Step 3 */}
-                    <div className="flex flex-col items-center gap-1.5 relative z-10">
-                      <div className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                        isInspected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F19] text-slate-300'
-                      }`}>
-                        <div className="h-2 w-2 rounded-full bg-current" />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500">Đã kiểm tra</span>
+                    <div className={`py-1.5 rounded-lg border ${isInspected ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-slate-50 dark:bg-slate-900 border-transparent text-slate-400'}`}>
+                      Đã sạch
                     </div>
                   </div>
 
-                  {/* Alert/Notes info box */}
+                  {/* Urgent info bubble */}
                   {room.notes && (
-                    <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 text-xs leading-relaxed text-indigo-700 dark:text-indigo-400 mb-6 flex gap-3">
-                      <AlertTriangle className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold block uppercase text-[10px] mb-1">LƯU Ý TỪ LỄ TÂN</span>
-                        {room.notes}
-                      </div>
+                    <div className="p-3.5 bg-rose-50/50 dark:bg-rose-950/10 rounded-xl border border-rose-100 dark:border-rose-900/30 text-xs text-rose-700 dark:text-rose-400 font-semibold leading-relaxed flex gap-2">
+                      <AlertOctagon className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
+                      <p>{room.notes}</p>
                     </div>
                   )}
 
-                  {/* Room Info details */}
-                  {(room.guestCount || room.guestStatus) && (
-                    <div className="flex gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6 pl-1">
-                      {room.guestCount && (
-                        <span className="flex items-center gap-1.5">
-                          <HelpCircle className="h-4 w-4" />
-                          {room.guestCount} Khách
-                        </span>
-                      )}
-                      {room.guestStatus && (
-                        <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 className="h-4 w-4" />
-                          {room.guestStatus}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex gap-3">
-                    {isWaiting && (
-                      <button
-                        onClick={() => handleStartCleaning(room.id)}
-                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-sm cursor-pointer"
-                      >
-                        Bắt đầu dọn
-                      </button>
-                    )}
-                    {isCleaning && (
-                      <button
-                        onClick={() => handleFinishCleaning(room)}
-                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-sm cursor-pointer"
-                      >
-                        Hoàn tất dọn dẹp
-                      </button>
-                    )}
-                    {isInspected && (
-                      <div className="px-5 py-2.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1.5 animate-pulse">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Đang đồng bộ Sẵn sàng...
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        if (isCleaning) {
-                          setReportIssueRoomNum(room.number);
-                          setIssueText('');
-                        } else {
-                          showToast('info', 'Thông tin', `Xem chi tiết Phòng ${room.number} đã cập nhật.`);
-                        }
-                      }}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors cursor-pointer"
-                    >
-                      {isCleaning ? 'Báo cáo sự cố' : 'Xem chi tiết phòng'}
-                    </button>
+                  {/* Capacity */}
+                  <div className="flex gap-4 text-xs font-bold text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <HelpCircle className="h-4 w-4 text-slate-400" />
+                      {room.guestCount} Khách cũ
+                    </span>
+                    <span className="flex items-center gap-1 text-emerald-650">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      {room.guestStatus}
+                    </span>
                   </div>
+
                 </div>
-              );
-            })
-          )}
-        </div>
 
-        {/* Right Column: Progress & Supplies */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Progress Card */}
-          <div className="p-6 bg-indigo-600 text-white rounded-3xl space-y-4 shadow-md relative overflow-hidden">
-            <div className="absolute top-0 right-0 h-32 w-32 bg-indigo-500 rounded-full translate-x-12 -translate-y-12 opacity-50" />
-            <div className="space-y-1 relative z-10">
-              <h3 className="text-base font-bold">Tiến độ hôm nay</h3>
-              <div className="flex justify-between items-baseline pt-2">
-                <span className="text-xs text-indigo-100">Hoàn thành</span>
-                <span className="text-3xl font-extrabold">{completedCount}/{totalCount}</span>
-              </div>
-              <div className="h-2 w-full bg-indigo-700 rounded-full overflow-hidden mt-3">
-                <div 
-                  className="h-full bg-white rounded-full transition-all duration-500" 
-                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-indigo-100 italic pt-2 font-semibold">
-                "Làm tốt lắm! Bạn còn {totalCount - completedCount} phòng nữa để hoàn thành mục tiêu ngày."
-              </p>
-            </div>
-          </div>
+                {/* Tactile Mobile Swipe/Slide Interactive Trigger Block */}
+                <div className="border-t border-slate-100 dark:border-slate-850 p-3 bg-slate-50/50 dark:bg-slate-900/10 flex flex-col gap-2">
+                  
+                  {isWaiting && (
+                    <button
+                      onClick={() => handleStartCleaning(room.id)}
+                      className="w-full h-12 rounded-xl bg-indigo-650 hover:bg-indigo-600 active:scale-[0.98] text-white text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      Bắt đầu dọn dẹp
+                      <ChevronRight className="h-4 w-4 animate-pulse" />
+                    </button>
+                  )}
 
-          {/* Supplies Card */}
-          <div className="p-6 bg-white dark:bg-[#0B0F19] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors duration-300">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Vật tư cần bổ sung
-            </h3>
-            
-            <div className="space-y-3">
-              {[
-                { name: 'Khăn tắm (Lớn)', count: 24 },
-                { name: 'Dầu gội/Sữa tắm', count: 15 },
-                { name: 'Nước khoáng 350ml', count: 40 }
-              ].map((sup, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/80">
-                  <span className="text-xs font-semibold text-slate-650 dark:text-slate-350">{sup.name}</span>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">+{sup.count}</span>
+                  {isCleaning && (
+                    <button
+                      onClick={() => handleFinishCleaning(room)}
+                      className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      Hoàn thành dọn dẹp
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
+                  )}
+
+                  {isInspected && (
+                    <div className="w-full h-12 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 text-xs font-bold flex items-center justify-center gap-1.5 animate-pulse">
+                      Đang đồng bộ phòng sẵn sàng...
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setReportIssueRoomNum(room.number)}
+                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 hover:text-rose-500 hover:bg-rose-50/30 transition-all cursor-pointer"
+                  >
+                    Báo cáo sự cố phòng
+                  </button>
+
                 </div>
-              ))}
-            </div>
 
-            <button 
-              onClick={() => showToast('success', 'Gửi yêu cầu', 'Đã gửi yêu cầu vật tư thành công.')}
-              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-indigo-600/50 hover:border-indigo-600 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all cursor-pointer"
-            >
-              Yêu cầu thêm từ kho
-            </button>
-          </div>
-
-          {/* Standard image card */}
-          <div className="relative h-44 rounded-3xl overflow-hidden shadow-sm">
-            <img 
-              src="https://images.unsplash.com/photo-1540518614846-7eded433c457?q=80&w=600&auto=format&fit=crop" 
-              alt="Lumiere standard" 
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-slate-950/50" />
-            <div className="absolute bottom-4 left-4 right-4 text-white space-y-1.5 font-semibold">
-              <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-600 px-2 py-0.5 rounded-md inline-block">Tiêu chuẩn</span>
-              <p className="text-xs italic leading-relaxed text-slate-100 font-medium">"Tiêu chuẩn 5 sao Lumiere: Mỗi chi tiết nhỏ đều tạo nên trải nghiệm lớn."</p>
-            </div>
-          </div>
-
-        </div>
-
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {/* Phòng khác Section */}
-      <div className="p-6 bg-white dark:bg-[#0B0F19] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors duration-300">
+      {/* Other rooms section optimized for compact cards */}
+      <div className="space-y-3.5 pt-4">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider pl-1 border-l-4 border-indigo-600">
-          Phòng khác
+          Phòng chờ phân trực
         </h3>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-4">Phòng</th>
-                <th className="px-6 py-4">Loại</th>
-                <th className="px-6 py-4">Mức độ</th>
-                <th className="px-6 py-4">Ghi chú</th>
-                <th className="px-6 py-4">Trạng thái</th>
-                <th className="px-6 py-4 text-right">Hành động</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-semibold text-slate-750 dark:text-slate-350">
-              {otherRooms.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-slate-450">Không có dữ liệu</td>
-                </tr>
-              ) : (
-                otherRooms.map((room) => (
-                  <tr key={room.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white text-sm">P. {room.id}</td>
-                    <td className="px-6 py-4">{room.type}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md ${
-                        room.priority === 'KHẨN CẤP' ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-400' :
-                        room.priority === 'CAO' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400' :
-                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {room.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{room.notes}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 font-bold">
-                        <Clock className="h-3.5 w-3.5 text-indigo-600" />
-                        {room.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-605">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        
+        <div className="space-y-2">
+          {otherRooms.slice(0, 5).map((room) => (
+            <div key={room.id} className="p-3 bg-white dark:bg-[#0B0F19] rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs font-semibold">
+              <div className="space-y-0.5">
+                <span className="font-extrabold text-slate-900 dark:text-white">P. {room.id}</span>
+                <span className="text-[10px] text-slate-400 block">{room.type}</span>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${
+                room.priority === 'KHẨN CẤP' ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-500'
+              }`}>
+                {room.priority}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Custom Issue Report Modal */}
       {reportIssueRoomNum && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-5 animate-in zoom-in-95 duration-200">
             <button 
               onClick={() => { setReportIssueRoomNum(null); setIssueText(''); }}
-              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-605 transition-colors"
+              className="absolute right-5 top-5 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="space-y-1">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Báo cáo sự cố phòng
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                Gửi thông tin hỏng hóc hoặc sự cố tại **Phòng {reportIssueRoomNum}**.
+              <p className="text-xs text-slate-500">
+                Gửi ghi nhận sự cố tại **Phòng {reportIssueRoomNum}**.
               </p>
             </div>
 
             <form onSubmit={executeReportIssue} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                  Chi tiết sự cố *
-                </label>
                 <textarea
                   value={issueText}
                   onChange={(e) => setIssueText(e.target.value)}
-                  placeholder="Ví dụ: Vòi sen bị hỏng, điều hòa không lạnh, mất điện..."
+                  placeholder="Ví dụ: Hỏng máy lạnh, vòi sen rò nước..."
                   rows={4}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-sm text-slate-900 dark:text-slate-105 focus:border-indigo-650 focus:outline-none transition-colors resize-none"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-900 dark:text-slate-105 focus:border-indigo-650 focus:outline-none transition-colors resize-none"
                   required
                   autoFocus
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => { setReportIssueRoomNum(null); setIssueText(''); }}

@@ -40,6 +40,9 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    // Clear cookies for Next.js Middleware route guard
+    document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    document.cookie = "userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     router.push('/login');
   };
 

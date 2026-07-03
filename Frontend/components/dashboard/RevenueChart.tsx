@@ -75,7 +75,7 @@ export default function RevenueChart() {
                   color: '#fff'
                 }}
                 itemStyle={{ color: '#fff' }}
-                formatter={(value: number) => [`$${value}`, 'Doanh thu']}
+                formatter={(value: any) => [`${value}`, 'Doanh thu']}
               />
               <Bar dataKey="total" fill="url(#colorRevenue)" radius={[6, 6, 6, 6]} barSize={40} />
             </BarChart>

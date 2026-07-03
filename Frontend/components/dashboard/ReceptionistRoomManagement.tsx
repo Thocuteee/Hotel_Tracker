@@ -9,7 +9,11 @@ import {
   LogIn, 
   User, 
   Loader2,
-  X
+  X,
+  Calendar,
+  ArrowRight,
+  ArrowLeft,
+  ChevronDown
 } from 'lucide-react';
 import api from '@/lib/api';
 import Toast, { ToastMessage } from '@/components/ui/Toast';
@@ -23,6 +27,10 @@ interface Room {
   guestName?: string;
   vip?: boolean;
   roomTypeId: number;
+  cleaningStaff?: string;
+  cleaningTime?: string;
+  maintenanceIssue?: string;
+  maintenanceTime?: string;
   history: {
     event: string;
     time: string;
@@ -34,6 +42,7 @@ export default function ReceptionistRoomManagement() {
   const [loading, setLoading] = useState(true);
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [floorFilter, setFloorFilter] = useState<number | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [updating, setUpdating] = useState(false);
   
   // Toast notifications state
@@ -74,28 +83,34 @@ export default function ReceptionistRoomManagement() {
 
         let guestName = undefined;
         if (frontendStatus === 'occupied') {
-          guestName = r.roomNumber === '201' ? 'Ms. Kim Thu (VIP)' : 'Mr. Le Hoang (3 nốt)';
+          guestName = r.roomNumber === '101' ? 'Nguyễn Văn An' : 
+                      r.roomNumber === '202' ? 'Phạm Bình' :
+                      r.roomNumber === '203' ? 'Ngô Quyền' : 'Khách lưu trú';
         }
 
         const history = [
           { event: frontendStatus === 'ready' ? 'Dọn phòng hoàn tất' : 'Thay đổi trạng thái phòng', time: 'Hôm nay' }
         ];
-        if (frontendStatus === 'occupied') {
-          history.unshift({ event: `Check-in: ${guestName || 'Khách lưu trú'}`, time: 'Vừa xong' });
-        }
 
         return {
           id: String(r.id),
           number: r.roomNumber,
-          type: r.roomType?.name || 'Standard Suite',
+          type: r.roomType?.name || 'Deluxe Suite',
           floor: r.floor,
           status: frontendStatus,
           guestName,
           vip: r.roomNumber === '201',
           roomTypeId: r.roomType?.id || 0,
+          cleaningStaff: frontendStatus === 'cleaning' ? 'Lê Thị Hoa' : undefined,
+          cleaningTime: frontendStatus === 'cleaning' ? '15:30' : undefined,
+          maintenanceIssue: frontendStatus === 'maintenance' ? 'Sửa vòi nước' : undefined,
+          maintenanceTime: frontendStatus === 'maintenance' ? '09:00' : undefined,
           history
         };
       });
+
+      // Sort rooms by number ascending
+      mappedRooms.sort((a: Room, b: Room) => Number(a.number) - Number(b.number));
 
       setRooms(mappedRooms);
       if (mappedRooms.length > 0 && !selectedRoomId) {
@@ -142,6 +157,10 @@ export default function ReceptionistRoomManagement() {
             ...r, 
             status: newStatus,
             guestName: newStatus === 'occupied' ? guest : undefined,
+            cleaningStaff: newStatus === 'cleaning' ? 'Nhân viên A' : undefined,
+            cleaningTime: newStatus === 'cleaning' ? '16:00' : undefined,
+            maintenanceIssue: newStatus === 'maintenance' ? 'Sửa chữa điện' : undefined,
+            maintenanceTime: newStatus === 'maintenance' ? '10:00' : undefined,
             history: updatedHistory
           };
         }
@@ -165,22 +184,18 @@ export default function ReceptionistRoomManagement() {
     handleUpdateStatus(checkInRoom, 'occupied', guestInputName.trim());
   };
 
-  const selectedRoom = rooms.find(r => r.id === selectedRoomId) || rooms[0];
+  const filteredRooms = rooms.filter(room => {
+    if (floorFilter !== 'all' && room.floor !== floorFilter) return false;
+    if (typeFilter !== 'all' && room.type !== typeFilter) return false;
+    return true;
+  });
 
-  const roomsByFloor = rooms.reduce((acc, room) => {
-    if (floorFilter !== 'all' && room.floor !== floorFilter) return acc;
-    if (!acc[room.floor]) acc[room.floor] = [];
-    acc[room.floor].push(room);
-    return acc;
-  }, {} as Record<number, Room[]>);
-
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
+  const totalRooms = rooms.length;
+  const occupiedCount = rooms.filter(r => r.status === 'occupied').length;
+  const readyCount = rooms.filter(r => r.status === 'ready').length;
+  const cleaningCount = rooms.filter(r => r.status === 'cleaning').length;
+  const maintenanceCount = rooms.filter(r => r.status === 'maintenance').length;
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedCount / totalRooms) * 100) : 0;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto relative">
@@ -192,230 +207,203 @@ export default function ReceptionistRoomManagement() {
         ))}
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Sơ đồ trạng thái phòng trực quan
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Cập nhật thời gian thực tình trạng buồng phòng.
-          </p>
-        </div>
+      {/* Metric Cards matching Screenshot 2 Header */}
+      <div className="grid gap-6 md:grid-cols-4">
         
-        <div className="flex gap-2">
+        <div className="p-5 bg-white dark:bg-[#0B0F19] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lượt đến (Sẵn sàng)</span>
+            <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 block leading-none">{readyCount}</span>
+            <span className="text-[10px] font-bold text-emerald-650">Phòng trống sẵn sàng Check-in</span>
+          </div>
+          <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 rounded-xl flex items-center justify-center">
+            <ArrowRight className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="p-5 bg-white dark:bg-[#0B0F19] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lượt đi (Đang ở)</span>
+            <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 block leading-none">{occupiedCount}</span>
+            <span className="text-[10px] font-bold text-slate-500">Đang có khách lưu trú</span>
+          </div>
+          <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 rounded-xl flex items-center justify-center">
+            <ArrowLeft className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="p-5 bg-white dark:bg-[#0B0F19] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tỷ lệ lấp đầy</span>
+            <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 block leading-none">{occupancyRate}%</span>
+            <div className="h-1.5 w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-indigo-650 rounded-full" style={{ width: `${occupancyRate}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 bg-white dark:bg-[#0B0F19] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Đang dọn dẹp</span>
+            <span className="text-3xl font-extrabold text-rose-600 dark:text-rose-455 block leading-none">{cleaningCount}</span>
+            <span className="text-[10px] font-bold text-rose-500">Phòng cần làm vệ sinh</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Filter Row and Floor Tabs matching Screenshot 2 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 dark:border-slate-805 pb-2">
+        {/* Floor selector tabs */}
+        <div className="flex bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-250/20 w-fit">
           {[
             { id: 'all', label: 'Tất cả tầng' },
             { id: 1, label: 'Tầng 1' },
-            { id: 2, label: 'Tầng 2' }
+            { id: 2, label: 'Tầng 2' },
+            { id: 5, label: 'Tầng thượng' }
           ].map(opt => (
             <button
               key={opt.id}
               onClick={() => setFloorFilter(opt.id as any)}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 floorFilter === opt.id
-                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900'
+                  ? 'bg-white dark:bg-[#0B0F19] text-indigo-650 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Filter className="h-3 w-3" />
               {opt.label}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Main Split Grid */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        
-        {/* Left Column: Sơ đồ phòng */}
-        <div className="lg:col-span-8 space-y-8 bg-white dark:bg-[#0B0F19] rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm transition-colors duration-300">
-          
-          {Object.keys(roomsByFloor).length === 0 ? (
-            <div className="text-center py-12 text-sm text-slate-400">
-              Không có phòng nào ở tầng đã chọn.
-            </div>
-          ) : (
-            Object.keys(roomsByFloor).map((floorStr) => {
-              const floor = Number(floorStr);
-              return (
-                <div key={floor} className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider pl-1 border-l-4 border-indigo-600">
-                    Tầng {floor}
-                  </h3>
-                  
-                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                    {roomsByFloor[floor].map((room) => {
-                      const isSelected = room.id === selectedRoomId;
-                      return (
-                        <button
-                          key={room.id}
-                          onClick={() => setSelectedRoomId(room.id)}
-                          className={`flex flex-col text-left p-4 rounded-2xl border transition-all duration-200 outline-none relative group cursor-pointer ${
-                            isSelected 
-                              ? 'border-indigo-600 ring-2 ring-indigo-600/10 shadow-md bg-indigo-50/10 dark:bg-indigo-950/5' 
-                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-indigo-600/50 hover:shadow-sm'
-                          }`}
-                        >
-                          {/* Upper row: Room num & Status Badge */}
-                          <div className="flex items-center justify-between w-full mb-3">
-                            <span className="text-xl font-extrabold text-slate-900 dark:text-white">
-                              {room.number}
-                            </span>
-                            
-                            <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md ${
-                              room.status === 'ready' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400' :
-                              room.status === 'occupied' ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-400' :
-                              room.status === 'cleaning' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400' :
-                              'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                            }`}>
-                              {room.status === 'ready' ? 'Ready' :
-                               room.status === 'occupied' ? 'Occupied' :
-                               room.status === 'cleaning' ? 'Cleaning' : 'Maintenance'}
-                            </span>
-                          </div>
-
-                          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                            {room.type}
-                          </span>
-
-                          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 w-full text-xs flex items-center gap-1.5">
-                            {room.status === 'ready' && (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Sẵn sàng đón khách
-                              </span>
-                            )}
-                            {room.status === 'occupied' && (
-                              <span className="text-slate-900 dark:text-white font-bold flex items-center gap-1 truncate">
-                                <User className="h-3.5 w-3.5 text-rose-500" />
-                                {room.guestName || 'Khách hàng'}
-                              </span>
-                            )}
-                            {room.status === 'cleaning' && (
-                              <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                Đang dọn dẹp
-                              </span>
-                            )}
-                            {room.status === 'maintenance' && (
-                              <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
-                                <Wrench className="h-3.5 w-3.5" />
-                                Bảo trì thiết bị
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })
-          )}
-
+        {/* Room type filter */}
+        <div className="flex items-center gap-2">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="h-10 rounded-xl border border-slate-200 dark:border-slate-855 bg-white dark:bg-slate-900 px-4 text-xs font-bold text-slate-650 focus:outline-none cursor-pointer"
+          >
+            <option value="all">Hạng phòng: Tất cả</option>
+            <option value="Deluxe King">Deluxe King</option>
+            <option value="Suite Family">Suite Family</option>
+            <option value="Lumiere Penthouse">Lumiere Penthouse</option>
+          </select>
         </div>
-
-        {/* Right Column: Thao tác & Chi tiết */}
-        {selectedRoom && (
-          <div className="lg:col-span-4 space-y-6">
-            
-            <div className="p-6 bg-white dark:bg-[#0B0F19] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors duration-300">
-              <div className="text-center space-y-1 py-4 border-b border-slate-100 dark:border-slate-800 relative">
-                {updating && (
-                  <div className="absolute inset-0 bg-white/50 dark:bg-[#0B0F19]/50 flex items-center justify-center rounded-2xl z-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                  </div>
-                )}
-                <span className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400">{selectedRoom.number}</span>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{selectedRoom.type} • TẦNG {selectedRoom.floor}</p>
-              </div>
-
-              {/* Quick Actions Panel */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Thao tác nhanh</span>
-                
-                <button 
-                  onClick={() => handleUpdateStatus(selectedRoom, 'ready')}
-                  disabled={selectedRoom.status === 'ready' || updating}
-                  className="w-full flex h-11 items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-600 dark:text-emerald-400 px-4 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  <span>Đánh dấu Sẵn sàng</span>
-                  <CheckCircle2 className="h-4 w-4" />
-                </button>
-
-                <button 
-                  onClick={() => handleUpdateStatus(selectedRoom, 'cleaning')}
-                  disabled={selectedRoom.status === 'cleaning' || updating}
-                  className="w-full flex h-11 items-center justify-between rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/10 dark:bg-amber-950/5 text-amber-600 dark:text-amber-400 px-4 text-xs font-bold hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  <span>Yêu cầu Dọn phòng</span>
-                  <Clock className="h-4 w-4" />
-                </button>
-
-                <button 
-                  onClick={() => handleUpdateStatus(selectedRoom, 'maintenance')}
-                  disabled={selectedRoom.status === 'maintenance' || updating}
-                  className="w-full flex h-11 items-center justify-between rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/10 dark:bg-rose-950/5 text-rose-600 dark:text-rose-400 px-4 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  <span>Khóa bảo trì</span>
-                  <Wrench className="h-4 w-4" />
-                </button>
-
-                <button 
-                  onClick={() => setCheckInRoom(selectedRoom)}
-                  disabled={selectedRoom.status === 'occupied' || updating}
-                  className="w-full flex h-11 items-center justify-between rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/10 dark:bg-indigo-950/5 text-indigo-600 dark:text-indigo-400 px-4 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  <span>Gán khách (Check-in)</span>
-                  <LogIn className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Room History */}
-              <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Lịch sử phòng</span>
-                <div className="space-y-3">
-                  {selectedRoom.history.map((hist, i) => (
-                    <div key={i} className="flex gap-3 text-xs leading-relaxed items-start">
-                      <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
-                      <div className="space-y-0.5">
-                        <p className="font-bold text-slate-800 dark:text-slate-200">{hist.event}</p>
-                        <p className="text-[10px] text-slate-450 dark:text-slate-500">{hist.time}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Legend / Chú thích */}
-            <div className="p-6 bg-white dark:bg-[#0B0F19] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors duration-300">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Chú thích trạng thái</span>
-              <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-slate-600 dark:text-slate-400">Sẵn sàng (Ready)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                  <span className="text-slate-600 dark:text-slate-400">Có khách (Occupied)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                  <span className="text-slate-600 dark:text-slate-400">Đang dọn (Cleaning)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
-                  <span className="text-slate-600 dark:text-slate-400">Bảo trì (Maintenance)</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        )}
-
       </div>
+
+      {/* Legends Indicators */}
+      <div className="flex flex-wrap gap-4 text-xs font-bold pl-1">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-indigo-650" />
+          <span className="text-slate-600 dark:text-slate-450">Có khách</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          <span className="text-slate-600 dark:text-slate-450">Sẵn sàng</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+          <span className="text-slate-600 dark:text-slate-450">Đang dọn</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+          <span className="text-slate-600 dark:text-slate-450">Bảo trì</span>
+        </div>
+      </div>
+
+      {/* Sơ đồ phòng grid matching Screenshot 2 */}
+      {loading ? (
+        <div className="flex h-[30vh] w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 pb-12">
+          {filteredRooms.map((room) => {
+            const isOccupied = room.status === 'occupied';
+            const isReady = room.status === 'ready';
+            const isCleaning = room.status === 'cleaning';
+            const isMaintenance = room.status === 'maintenance';
+
+            return (
+              <div
+                key={room.id}
+                onClick={() => setSelectedRoomId(room.id)}
+                className={`flex flex-col text-left p-4.5 rounded-2xl border bg-white dark:bg-[#0B0F19] transition-all relative cursor-pointer ${
+                  isOccupied ? 'border-indigo-600 shadow-sm ring-1 ring-indigo-600/10' :
+                  isReady ? 'border-emerald-500' :
+                  isCleaning ? 'border-amber-450' :
+                  'border-rose-500'
+                }`}
+              >
+                {/* Header row: Room number & status badge */}
+                <div className="flex items-start justify-between mb-3">
+                  <span className={`text-xl font-extrabold ${
+                    isOccupied ? 'text-indigo-650 dark:text-indigo-400' :
+                    isReady ? 'text-emerald-650 dark:text-emerald-400' :
+                    isCleaning ? 'text-amber-600 dark:text-amber-455' :
+                    'text-rose-600 dark:text-rose-400'
+                  }`}>
+                    {room.number}
+                  </span>
+                  
+                  <span className={`px-2 py-0.5 text-[8px] font-extrabold uppercase rounded ${
+                    isOccupied ? 'bg-indigo-50 text-indigo-655 dark:bg-indigo-950/30' :
+                    isReady ? 'bg-emerald-50 text-emerald-655 dark:bg-emerald-950/20' :
+                    isCleaning ? 'bg-amber-50 text-amber-650 dark:bg-amber-950/20' :
+                    'bg-rose-50 text-rose-650 dark:bg-rose-950/20'
+                  }`}>
+                    {room.status === 'ready' ? 'READY' :
+                     room.status === 'occupied' ? 'OCCUPIED' :
+                     room.status === 'cleaning' ? 'CLEANING' : 'MAINTENANCE'}
+                  </span>
+                </div>
+
+                {/* Room type subtext */}
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  {room.type}
+                </span>
+
+                {/* Conditional information matching Screenshot 2 */}
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850 w-full text-xs font-semibold">
+                  {isOccupied && (
+                    <div className="space-y-1">
+                      <p className="text-slate-850 dark:text-white truncate font-extrabold">{room.guestName}</p>
+                      <p className="text-[10px] text-slate-400">Trả phòng: 12:00</p>
+                    </div>
+                  )}
+
+                  {isReady && (
+                    <div className="space-y-1">
+                      <p className="text-slate-400 font-bold">Trống</p>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setCheckInRoom(room); }}
+                        className="text-[10px] font-extrabold text-indigo-650 hover:underline flex items-center gap-1"
+                      >
+                        <LogIn className="h-3 w-3" /> Check-in
+                      </button>
+                    </div>
+                  )}
+
+                  {isCleaning && (
+                    <div className="space-y-1">
+                      <p className="text-slate-850 dark:text-white font-extrabold">{room.cleaningStaff}</p>
+                      <p className="text-[10px] text-amber-600 font-bold">Dự kiến xong: {room.cleaningTime}</p>
+                    </div>
+                  )}
+
+                  {isMaintenance && (
+                    <div className="space-y-1">
+                      <p className="text-rose-600 font-extrabold">{room.maintenanceIssue}</p>
+                      <p className="text-[10px] text-slate-400">Bắt đầu: {room.maintenanceTime}</p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Custom Check-in Modal */}
       {checkInRoom && (
@@ -423,7 +411,7 @@ export default function ReceptionistRoomManagement() {
           <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
             <button 
               onClick={() => { setCheckInRoom(null); setGuestInputName(''); }}
-              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-605 transition-colors"
+              className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-655 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -446,8 +434,8 @@ export default function ReceptionistRoomManagement() {
                   type="text"
                   value={guestInputName}
                   onChange={(e) => setGuestInputName(e.target.value)}
-                  placeholder="Ví dụ: Mr. Nguyễn Văn A"
-                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-650 focus:outline-none transition-colors"
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 text-sm text-slate-900 dark:text-slate-105 focus:border-indigo-650 focus:outline-none transition-colors"
                   required
                   autoFocus
                 />
