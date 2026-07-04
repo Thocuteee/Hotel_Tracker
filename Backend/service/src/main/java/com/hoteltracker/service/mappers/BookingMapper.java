@@ -3,19 +3,41 @@ package com.hoteltracker.service.mappers;
 import com.hoteltracker.service.dtos.request.BookingRequest;
 import com.hoteltracker.service.dtos.response.BookingResponse;
 import com.hoteltracker.service.model.Booking;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = "spring", uses = {UserMapper.class, RoomMapper.class})
-public interface BookingMapper {
-    
-    BookingResponse toResponse(Booking booking);
+@Component
+public class BookingMapper {
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "customer", ignore = true) 
-    @Mapping(target = "room", ignore = true)  
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "totalPrice", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    Booking toEntity(BookingRequest request);
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private RoomMapper roomMapper;
+
+    public BookingResponse toResponse(Booking booking) {
+        if (booking == null) {
+            return null;
+        }
+        return BookingResponse.builder()
+                .id(booking.getId())
+                .customer(userMapper.toResponse(booking.getCustomer()))
+                .room(roomMapper.toResponse(booking.getRoom()))
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .status(booking.getStatus())
+                .totalPrice(booking.getTotalPrice())
+                .createdAt(booking.getCreatedAt())
+                .build();
+    }
+
+    public Booking toEntity(BookingRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return Booking.builder()
+                .checkInDate(request.getCheckInDate())
+                .checkOutDate(request.getCheckOutDate())
+                .build();
+    }
 }

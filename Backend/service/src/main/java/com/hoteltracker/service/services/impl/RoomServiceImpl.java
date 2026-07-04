@@ -57,6 +57,13 @@ public class RoomServiceImpl implements RoomService {
         RoomType roomType = roomTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + id));
         roomType.setName(request.getName());
+        roomType.setBasePrice(request.getBasePrice());
+        roomType.setCapacity(request.getCapacity());
+        roomType.setDescription(request.getDescription());
+        roomType.setImages(request.getImages());
+        roomType.setDiscount(request.getDiscount() != null ? request.getDiscount() : 0);
+        roomType.setDiscountStart(request.getDiscountStart());
+        roomType.setDiscountEnd(request.getDiscountEnd());
         return roomTypeMapper.toResponse(roomTypeRepository.save(roomType));
     }
 

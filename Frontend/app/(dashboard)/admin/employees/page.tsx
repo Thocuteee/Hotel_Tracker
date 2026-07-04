@@ -217,7 +217,7 @@ export default function EmployeesPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-text-muted py-4">
-                      {new Date(emp.createdAt).toLocaleDateString('vi-VN')}
+                      {emp.createdAt ? new Date(emp.createdAt).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
                     </TableCell>
                     <TableCell className="py-4 text-center">
                       <div className="flex justify-center gap-1">

@@ -3,16 +3,34 @@ package com.hoteltracker.service.mappers;
 import com.hoteltracker.service.dtos.request.UserCreateRequest;
 import com.hoteltracker.service.dtos.response.UserResponse;
 import com.hoteltracker.service.model.User;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = "spring")
-public interface UserMapper {
+@Component
+public class UserMapper {
 
-    public abstract UserResponse toResponse(User user);
+    public UserResponse toResponse(User user) {
+        if (user == null) {
+            return null;
+        }
+        return UserResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "passwordHash", ignore = true)
-    public abstract User toEntity(UserCreateRequest request);
+    public User toEntity(UserCreateRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .role(request.getRole())
+                .build();
+    }
 }

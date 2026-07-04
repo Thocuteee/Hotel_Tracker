@@ -3,6 +3,8 @@ package com.hoteltracker.service.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -32,4 +34,14 @@ public class RoomType {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSON")
     private String images;
+
+    @Column(name = "discount")
+    @Builder.Default
+    private Integer discount = 0;
+
+    @Column(name = "discount_start")
+    private LocalDateTime discountStart;
+
+    @Column(name = "discount_end")
+    private LocalDateTime discountEnd;
 }

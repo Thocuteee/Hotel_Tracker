@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class RoomTypeRequest {
@@ -22,4 +23,7 @@ public class RoomTypeRequest {
 
     private String description;
     private String images; 
+    private Integer discount;
+    private LocalDateTime discountStart;
+    private LocalDateTime discountEnd;
 }
