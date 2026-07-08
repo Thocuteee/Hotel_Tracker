@@ -77,6 +77,10 @@ export default function AdminRoomManagement() {
   const [typeModalMode, setTypeModalMode] = useState<'add' | 'edit'>('add');
   const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
 
+  // View Details Modal states
+  const [isViewTypeModalOpen, setIsViewTypeModalOpen] = useState(false);
+  const [viewedRoomType, setViewedRoomType] = useState<RoomType | null>(null);
+
   // Delete confirm modal states
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteConfirmType, setDeleteConfirmType] = useState<{ id: number; name: string } | null>(null);
@@ -351,6 +355,11 @@ export default function AdminRoomManagement() {
     setFormTypeDiscountStart('');
     setFormTypeDiscountEnd('');
     setIsTypeModalOpen(true);
+  };
+
+  const handleViewType = (type: RoomType) => {
+    setViewedRoomType(type);
+    setIsViewTypeModalOpen(true);
   };
 
   const handleOpenEditType = (type: RoomType) => {
@@ -705,7 +714,7 @@ export default function AdminRoomManagement() {
                           </div>
                           
                           <button 
-                            onClick={() => handleOpenEditType(type)}
+                            onClick={() => handleViewType(type)}
                             className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer"
                           >
                             Chi tiết
@@ -794,10 +803,10 @@ export default function AdminRoomManagement() {
                           )}
                         </div>
                         <button 
-                          onClick={() => handleOpenEditType(type)}
+                          onClick={() => handleViewType(type)}
                           className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                         >
-                          Thư viện
+                          Chi tiết
                         </button>
                       </div>
                     </div>
@@ -1011,7 +1020,7 @@ export default function AdminRoomManagement() {
           <div className="p-6 border-t border-slate-100 dark:border-slate-855 flex gap-3">
             <button
               onClick={() => handleOpenEditRoom(selectedRoom)}
-              className="flex-1 h-11 bg-indigo-650 hover:bg-indigo-600 text-xs font-bold text-white rounded-xl transition-all active:scale-[0.98] cursor-pointer"
+              className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition-all active:scale-[0.98] cursor-pointer"
             >
               Chỉnh sửa phòng
             </button>
@@ -1098,12 +1107,114 @@ export default function AdminRoomManagement() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-11 bg-indigo-650 hover:bg-indigo-600 text-white font-semibold rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer mt-6 flex items-center justify-center gap-1.5"
+                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer mt-6 flex items-center justify-center gap-1.5"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {roomModalMode === 'add' ? 'Thêm phòng mới' : 'Lưu thay đổi'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Room Type View Details Modal */}
+      {isViewTypeModalOpen && viewedRoomType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setIsViewTypeModalOpen(false)}
+              className="absolute right-4 top-4 z-10 p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            <div className="h-64 w-full bg-slate-100 relative">
+              {(() => {
+                let imgUrl = viewedRoomType.images || 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=1200&auto=format&fit=crop';
+                try {
+                  const parsed = JSON.parse(viewedRoomType.images);
+                  if (parsed && parsed.length > 0) imgUrl = parsed[0];
+                } catch(e) {}
+                return (
+                  <img src={imgUrl} alt={viewedRoomType.name} className="h-full w-full object-cover" />
+                );
+              })()}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+                <h2 className="text-3xl font-extrabold text-white leading-tight">
+                  {viewedRoomType.name}
+                </h2>
+                <div className="flex gap-4 text-sm font-medium text-slate-200 mt-2">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="h-4 w-4" />
+                    {viewedRoomType.capacity} Người lớn
+                  </span>
+                  <span>•</span>
+                  <span>{viewedRoomType.name.includes('Penthouse') ? '120 m²' : viewedRoomType.name.includes('Family') ? '65 m²' : '45 m²'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Mô tả phòng</h3>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {viewedRoomType.description || "Chưa có mô tả chi tiết cho hạng phòng này."}
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0 ml-6 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">GIÁ CƠ BẢN / ĐÊM</span>
+                  {viewedRoomType.discount && viewedRoomType.discount > 0 ? (
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-bold text-slate-400 line-through">
+                        {viewedRoomType.basePrice.toLocaleString('vi-VN')} đ
+                      </span>
+                      <span className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 leading-none mt-1">
+                        {(viewedRoomType.basePrice * (1 - viewedRoomType.discount / 100)).toLocaleString('vi-VN')} VND
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 leading-none block">
+                      {viewedRoomType.basePrice.toLocaleString('vi-VN')} VND
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tiện ích bao gồm</h3>
+                <div className="flex flex-wrap gap-2">
+                  {getUtilitiesForType(viewedRoomType.name).map((util, i) => (
+                    <span 
+                      key={i}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs font-bold"
+                    >
+                      {renderUtilityIcon(util)}
+                      {getUtilityLabel(util)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsViewTypeModalOpen(false)}
+                  className="px-5 h-11 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => {
+                    setIsViewTypeModalOpen(false);
+                    handleOpenEditType(viewedRoomType);
+                  }}
+                  className="px-5 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Chỉnh sửa hạng phòng
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
