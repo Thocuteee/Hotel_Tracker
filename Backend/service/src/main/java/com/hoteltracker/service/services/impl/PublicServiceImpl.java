@@ -28,14 +28,16 @@ public class PublicServiceImpl implements PublicService {
     @Override
     public List<RoomTypeResponse> getRecommendedRoomTypes() {
         return roomTypeRepository.findAll().stream()
-                .filter(rt -> Boolean.TRUE.equals(rt.getIsRecommended()))
+                .filter(rt -> Boolean.TRUE.equals(rt.getIsPublic()) && Boolean.TRUE.equals(rt.getIsFeatured()))
                 .map(roomTypeMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<RoomTypeResponse> searchRoomTypes(Integer branchId, LocalDate checkInDate, LocalDate checkOutDate) {
-        List<RoomType> roomTypes = roomTypeRepository.findAll();
+        List<RoomType> roomTypes = roomTypeRepository.findAll().stream()
+                .filter(rt -> Boolean.TRUE.equals(rt.getIsPublic()))
+                .collect(Collectors.toList());
         if (branchId != null) {
             roomTypes = roomTypes.stream()
                     .filter(rt -> rt.getBranch() != null && rt.getBranch().getId().equals(branchId))

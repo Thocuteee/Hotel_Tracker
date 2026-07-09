@@ -22,7 +22,15 @@ public class RoomTypeMapper {
                 .discount(roomType.getDiscount())
                 .discountStart(roomType.getDiscountStart())
                 .discountEnd(roomType.getDiscountEnd())
-                .isRecommended(roomType.getIsRecommended())
+                .isFeatured(roomType.getIsFeatured())
+                .isPublic(roomType.getIsPublic())
+                .status(roomType.getStatus() != null ? roomType.getStatus().name() : null)
+                .cancellationPolicy(roomType.getCancellationPolicy())
+                .checkInTime(roomType.getCheckInTime())
+                .checkOutTime(roomType.getCheckOutTime())
+                .allowSmoking(roomType.getAllowSmoking())
+                .allowPets(roomType.getAllowPets())
+                .extraBedAllowed(roomType.getExtraBedAllowed())
                 .branchId(roomType.getBranch() != null ? roomType.getBranch().getId() : null)
                 .build();
     }
@@ -40,7 +48,15 @@ public class RoomTypeMapper {
                 .discount(request.getDiscount() != null ? request.getDiscount() : 0)
                 .discountStart(request.getDiscountStart())
                 .discountEnd(request.getDiscountEnd())
-                .isRecommended(request.getIsRecommended() != null ? request.getIsRecommended() : false)
+                .isFeatured(request.getIsFeatured() != null ? request.getIsFeatured() : false)
+                .isPublic(request.getIsPublic() != null ? request.getIsPublic() : true)
+                .status(request.getStatus() != null ? com.hoteltracker.service.model.enums.RoomTypeStatus.valueOf(request.getStatus()) : com.hoteltracker.service.model.enums.RoomTypeStatus.AVAILABLE)
+                .cancellationPolicy(request.getCancellationPolicy())
+                .checkInTime(request.getCheckInTime())
+                .checkOutTime(request.getCheckOutTime())
+                .allowSmoking(request.getAllowSmoking() != null ? request.getAllowSmoking() : false)
+                .allowPets(request.getAllowPets() != null ? request.getAllowPets() : false)
+                .extraBedAllowed(request.getExtraBedAllowed() != null ? request.getExtraBedAllowed() : false)
                 .build();
     }
 }

@@ -57,8 +57,20 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomTypeId = Number(searchParams.get('roomTypeId') || '1');
+  const checkInParam = searchParams.get('checkIn');
+  const checkOutParam = searchParams.get('checkOut');
   
   const [roomType, setRoomType] = useState<RoomType | null>(null);
+  
+  // Dynamic dates logic
+  const checkInDate = checkInParam ? new Date(checkInParam) : new Date();
+  const checkOutDate = checkOutParam ? new Date(checkOutParam) : new Date(Date.now() + 86400000);
+  
+  const nights = Math.max(1, Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)));
+  
+  const formatDisplayDate = (date: Date) => {
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  };
   
   useEffect(() => {
     import('@/lib/api').then(({ default: api }) => {
@@ -129,8 +141,8 @@ function CheckoutContent() {
       const api = (await import('@/lib/api')).default;
       const res = await api.post('/api/v1/bookings/lock', {
         roomTypeId: roomType.id,
-        checkInDate: "2026-07-15",
-        checkOutDate: "2026-07-17"
+        checkInDate: checkInDate.toISOString().split('T')[0],
+        checkOutDate: checkOutDate.toISOString().split('T')[0]
       });
       setLockKey(res.data.lockKey);
       
@@ -138,8 +150,8 @@ function CheckoutContent() {
       if (paymentMethod === 'cash') {
         const createRes = await api.post('/api/v1/bookings', {
           roomTypeId: roomType.id,
-          checkInDate: "2026-07-15",
-          checkOutDate: "2026-07-17",
+          checkInDate: checkInDate.toISOString().split('T')[0],
+          checkOutDate: checkOutDate.toISOString().split('T')[0],
           numAdults: 2,
           numChildren: 0,
           specialRequests: guestName + " - " + guestPhone,
@@ -173,8 +185,8 @@ function CheckoutContent() {
         const api = (await import('@/lib/api')).default;
         await api.post('/api/v1/bookings', {
           roomTypeId: roomType.id,
-          checkInDate: "2026-07-15",
-          checkOutDate: "2026-07-17",
+          checkInDate: checkInDate.toISOString().split('T')[0],
+          checkOutDate: checkOutDate.toISOString().split('T')[0],
           numAdults: 2,
           numChildren: 0,
           specialRequests: guestName + " - " + guestPhone,
@@ -196,9 +208,9 @@ function CheckoutContent() {
         guestName,
         guestPhone,
         guestEmail,
-        checkIn: "15/07/2026",
-        checkOut: "17/07/2026",
-        totalPrice: `${(roomType.basePrice * 2).toLocaleString('vi-VN')} đ`,
+        checkIn: formatDisplayDate(checkInDate),
+        checkOut: formatDisplayDate(checkOutDate),
+        totalPrice: `${((roomType.basePrice * (1 - (roomType.discount || 0)/100)) * nights * 1.1).toLocaleString('vi-VN')} đ`,
         status: 'PENDING_LATE', // Late payment status
         paymentMethod: paymentMethod.toUpperCase(),
         timePaid: new Date().toLocaleTimeString('vi-VN'),
@@ -216,6 +228,7 @@ function CheckoutContent() {
     }
   };
 
+  return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-in fade-in duration-300 relative">
       
       {/* Back to Home */}
@@ -481,34 +494,9 @@ function CheckoutContent() {
               </span>
             </div>
 
-            <div className="text-[10px] text-slate-400 flex items-center gap-1">
-              <ShieldAlert className="h-4 w-4 text-slate-400 shrink-0" />
-              Khóa tạm thời (Redis Lock) bảo vệ phòng khỏi Overbooking.
-            </div>
-            
-            {/* Demo speed toggle */}
-            <div className="flex gap-2 pt-2">
-              <button 
-                type="button"
-                onClick={() => setTimerSpeed(1)}
-                className={`px-2.5 py-1 text-[9px] font-bold rounded ${timerSpeed === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-              >
-                1x Tốc độ
-              </button>
-              <button 
-                type="button"
-                onClick={() => setTimerSpeed(15)}
-                className={`px-2.5 py-1 text-[9px] font-bold rounded ${timerSpeed === 15 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-              >
-                15x Speed
-              </button>
-              <button 
-                type="button"
-                onClick={() => setTimeLeft(175)} // Jump directly to under 3 mins
-                className="px-2.5 py-1 text-[9px] font-bold bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded"
-              >
-                &lt; 3 Phút
-              </button>
+            <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
+              <ShieldAlert className="h-4 w-4 text-indigo-500 shrink-0" />
+              <span>Vui lòng hoàn thành thanh toán trong thời gian này để đảm bảo phòng của bạn được giữ chỗ thành công.</span>
             </div>
           </div>
 
@@ -538,19 +526,19 @@ function CheckoutContent() {
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Thời gian ở</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">2 Đêm (15/07 - 17/07)</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{nights} Đêm ({formatDisplayDate(checkInDate)} - {formatDisplayDate(checkOutDate)})</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Giá phòng (2 đêm)</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{(roomType.basePrice * 2).toLocaleString('vi-VN')} đ</span>
+                <span className="text-slate-500 dark:text-slate-400">Giá phòng ({nights} đêm)</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{((roomType.basePrice * (1 - (roomType.discount || 0)/100)) * nights).toLocaleString('vi-VN')} đ</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Thuế & Phí dịch vụ (10%)</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{(roomType.basePrice * 2 * 0.1).toLocaleString('vi-VN')} đ</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{((roomType.basePrice * (1 - (roomType.discount || 0)/100)) * nights * 0.1).toLocaleString('vi-VN')} đ</span>
               </div>
               <div className="flex justify-between text-sm font-extrabold border-t border-slate-100 dark:border-slate-800 pt-3 text-slate-900 dark:text-white">
                 <span>Tổng số tiền</span>
-                <span className="text-indigo-600 dark:text-indigo-400">{(roomType.basePrice * 2 * 1.1).toLocaleString('vi-VN')} đ</span>
+                <span className="text-indigo-600 dark:text-indigo-400">{((roomType.basePrice * (1 - (roomType.discount || 0)/100)) * nights * 1.1).toLocaleString('vi-VN')} đ</span>
               </div>
             </div>
           </div>

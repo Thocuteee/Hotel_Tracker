@@ -12,6 +12,10 @@
   --muted: #64748b; /* slate-500 */
   --border-light: #f1f5f9; /* slate-100 */
   --bg-hover: #f8fafc; /* slate-50 */
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
 }
 
 .dark {
@@ -23,6 +27,10 @@
   --muted: #94a3b8; /* slate-400 */
   --border-light: #1e293b; /* slate-800 */
   --bg-hover: #1e293b;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
 }
 
 @theme inline {

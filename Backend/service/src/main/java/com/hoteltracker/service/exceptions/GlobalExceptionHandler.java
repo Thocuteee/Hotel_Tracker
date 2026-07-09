@@ -107,6 +107,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, HttpServletRequest request) {
             
+        ex.printStackTrace(); 
+        
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -114,8 +116,6 @@ public class GlobalExceptionHandler {
                 .message("Lỗi chi tiết: " + ex.getMessage()) 
                 .path(request.getRequestURI())
                 .build();
-                
-        
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

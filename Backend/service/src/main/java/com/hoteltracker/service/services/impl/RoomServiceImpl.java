@@ -34,8 +34,8 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public RoomTypeResponse createRoomType(RoomTypeRequest request) {
-        if (roomTypeRepository.existsByName(request.getName())) {
-            throw new DuplicateResourceException("Tên loại phòng đã tồn tại!");
+        if (roomTypeRepository.existsByNameAndBranchId(request.getName(), request.getBranchId())) {
+            throw new DuplicateResourceException("Tên loại phòng đã tồn tại ở chi nhánh này!");
         }
 
         Branch branch = branchRepository.findById(request.getBranchId())
@@ -69,6 +69,11 @@ public class RoomServiceImpl implements RoomService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Chi nhánh với ID: " + request.getBranchId()));
 
+        if (!roomType.getName().equals(request.getName()) &&
+            roomTypeRepository.existsByNameAndBranchId(request.getName(), request.getBranchId())) {
+            throw new DuplicateResourceException("Tên loại phòng đã tồn tại ở chi nhánh này!");
+        }
+
         roomType.setName(request.getName());
         roomType.setBasePrice(request.getBasePrice());
         roomType.setCapacity(request.getCapacity());
@@ -77,7 +82,15 @@ public class RoomServiceImpl implements RoomService {
         roomType.setDiscount(request.getDiscount() != null ? request.getDiscount() : 0);
         roomType.setDiscountStart(request.getDiscountStart());
         roomType.setDiscountEnd(request.getDiscountEnd());
-        roomType.setIsRecommended(request.getIsRecommended() != null ? request.getIsRecommended() : false);
+        roomType.setIsFeatured(request.getIsFeatured() != null ? request.getIsFeatured() : false);
+        roomType.setIsPublic(request.getIsPublic() != null ? request.getIsPublic() : true);
+        roomType.setStatus(request.getStatus() != null ? com.hoteltracker.service.model.enums.RoomTypeStatus.valueOf(request.getStatus()) : com.hoteltracker.service.model.enums.RoomTypeStatus.AVAILABLE);
+        roomType.setCancellationPolicy(request.getCancellationPolicy());
+        roomType.setCheckInTime(request.getCheckInTime());
+        roomType.setCheckOutTime(request.getCheckOutTime());
+        roomType.setAllowSmoking(request.getAllowSmoking() != null ? request.getAllowSmoking() : false);
+        roomType.setAllowPets(request.getAllowPets() != null ? request.getAllowPets() : false);
+        roomType.setExtraBedAllowed(request.getExtraBedAllowed() != null ? request.getExtraBedAllowed() : false);
         roomType.setBranch(branch);
 
         return roomTypeMapper.toResponse(roomTypeRepository.save(roomType));

@@ -26,7 +26,15 @@ public class RoomTypeRequest {
     private Integer discount;
     private LocalDateTime discountStart;
     private LocalDateTime discountEnd;
-    private Boolean isRecommended;
+    private Boolean isFeatured;
+    private Boolean isPublic;
+    private String status;
+    private String cancellationPolicy;
+    private java.time.LocalTime checkInTime;
+    private java.time.LocalTime checkOutTime;
+    private Boolean allowSmoking;
+    private Boolean allowPets;
+    private Boolean extraBedAllowed;
 
     @NotNull(message = "Chi nhánh không được để trống")
     private Integer branchId;

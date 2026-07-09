@@ -30,8 +30,12 @@ public class RedisLockServiceImpl implements RedisLockService {
 
     @Override
     public long countLockedSlots(Integer roomTypeId) {
-        String pattern = LOCK_PREFIX + roomTypeId + ":*";
-        Set<String> keys = redisTemplate.keys(pattern);
-        return keys != null ? keys.size() : 0;
+        try {
+            String pattern = LOCK_PREFIX + roomTypeId + ":*";
+            Set<String> keys = redisTemplate.keys(pattern);
+            return keys != null ? keys.size() : 0;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

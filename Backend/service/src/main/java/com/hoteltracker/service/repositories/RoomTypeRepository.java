@@ -8,6 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface RoomTypeRepository extends JpaRepository<RoomType, Integer> {
-    Optional<RoomType> findByName(String name);
-    boolean existsByName(String name);
+    Optional<RoomType> findByNameAndBranchId(String name, Integer branchId);
+    boolean existsByNameAndBranchId(String name, Integer branchId);
 }

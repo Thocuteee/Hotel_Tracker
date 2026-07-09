@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "branches")
@@ -36,4 +37,12 @@ public class Branch {
     
     @Column(name = "image_url")
     private String imageUrl;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "branch_services",
+        joinColumns = @JoinColumn(name = "branch_id"),
+        inverseJoinColumns = @JoinColumn(name = "service_id")
+    )
+    private Set<ServiceItem> services;
 }

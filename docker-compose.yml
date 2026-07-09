@@ -15,6 +15,13 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
+  redis:
+    image: redis:alpine
+    container_name: hotel_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   backend:
     build:
       context: ./Backend/service
@@ -26,8 +33,10 @@ services:
       - ./Backend/service/.env
     environment:
       - DB_HOST=postgres
+      - REDIS_HOST=redis
     depends_on:
       - postgres
+      - redis
     develop:
       watch:
         - action: sync+restart

@@ -37,7 +37,11 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/v1/auth/**").permitAll() 
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/v1/public/**").permitAll()
+                .requestMatchers("/api/v1/branches/**").permitAll()
+                .requestMatchers("/api/v1/web-config/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated() 
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

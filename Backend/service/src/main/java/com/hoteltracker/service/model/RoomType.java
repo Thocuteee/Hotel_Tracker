@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import com.hoteltracker.service.model.enums.RoomTypeStatus;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -45,9 +47,39 @@ public class RoomType {
     @Column(name = "discount_end")
     private LocalDateTime discountEnd;
 
-    @Column(name = "is_recommended")
+    @Column(name = "is_featured")
     @Builder.Default
-    private Boolean isRecommended = false;
+    private Boolean isFeatured = false;
+
+    @Column(name = "is_public")
+    @Builder.Default
+    private Boolean isPublic = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    @Builder.Default
+    private RoomTypeStatus status = RoomTypeStatus.AVAILABLE;
+
+    @Column(name = "cancellation_policy", length = 500)
+    private String cancellationPolicy;
+
+    @Column(name = "check_in_time")
+    private LocalTime checkInTime;
+
+    @Column(name = "check_out_time")
+    private LocalTime checkOutTime;
+
+    @Column(name = "allow_smoking")
+    @Builder.Default
+    private Boolean allowSmoking = false;
+
+    @Column(name = "allow_pets")
+    @Builder.Default
+    private Boolean allowPets = false;
+
+    @Column(name = "extra_bed_allowed")
+    @Builder.Default
+    private Boolean extraBedAllowed = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id")

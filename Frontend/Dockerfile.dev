@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy package.json để install dependency trước
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy toàn bộ mã nguồn
 COPY . .

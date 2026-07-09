@@ -3,20 +3,24 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Home, BedDouble, CalendarDays, LineChart, Users, FileText, Star, Settings, Bell, StarIcon, ChevronLeft, ChevronRight, UserCheck, LogOut, Globe } from 'lucide-react';
+import { Home, BedDouble, CalendarDays, LineChart, Users, Star, Settings, Bell, ChevronLeft, ChevronRight, UserCheck, LogOut, MapPin, Layers, Sparkles, Percent, LayoutDashboard, Globe } from 'lucide-react';
 import { Building2 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Tổng quan', href: '/admin', icon: Home, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
-  { name: 'Quản lý nhân viên', href: '/admin/employees', icon: UserCheck, roles: ['ADMIN'] },
-  { name: 'Quản lý phòng', href: '/admin/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
-  { name: 'Danh sách đặt phòng', href: '/admin/bookings', icon: CalendarDays, roles: ['ADMIN', 'RECEPTIONIST'] },
-  { name: 'Doanh thu', href: '#', icon: LineChart, roles: ['ADMIN'] },
-  { name: 'Khách hàng', href: '/admin/customers', icon: Users, roles: ['ADMIN', 'RECEPTIONIST'] },
-  { name: 'Báo cáo', href: '#', icon: FileText, roles: ['ADMIN'] },
-  { name: 'Đánh giá', href: '#', icon: Star, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Dashboard', href: '/admin', icon: Home, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
+  { name: 'Branches', href: '/admin/branches', icon: MapPin, roles: ['ADMIN'] },
+  { name: 'Room Types', href: '/admin/room-types', icon: Layers, roles: ['ADMIN'] },
+  { name: 'Rooms', href: '/admin/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
+  { name: 'Bookings', href: '/admin/bookings', icon: CalendarDays, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Customers', href: '/admin/customers', icon: Users, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Employees', href: '/admin/employees', icon: UserCheck, roles: ['ADMIN'] },
+  { name: 'Services', href: '/admin/services', icon: Sparkles, roles: ['ADMIN'] },
+  { name: 'Promotions', href: '/admin/promotions', icon: Percent, roles: ['ADMIN'] },
+  { name: 'Reviews', href: '/admin/reviews', icon: Star, roles: ['ADMIN', 'RECEPTIONIST'] },
+  { name: 'Reports', href: '/admin/reports', icon: LineChart, roles: ['ADMIN'] },
+  { name: 'CMS', href: '/admin/cms', icon: LayoutDashboard, roles: ['ADMIN'] },
+  { name: 'Settings', href: '/admin/settings', icon: Settings, roles: ['ADMIN'] },
   { name: 'Về trang khách', href: '/', icon: Globe, roles: ['ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'] },
-  { name: 'Cài đặt', href: '#', icon: Settings, roles: ['ADMIN'] },
 ];
 
 interface SidebarProps {

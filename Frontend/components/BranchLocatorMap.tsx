@@ -28,7 +28,10 @@ interface Branch {
 export default function BranchLocatorMap() {
   const [branches, setBranches] = useState<Branch[]>([]);
 
+  const [isMounted, setIsMounted] = useState(false);
+  
   useEffect(() => {
+    setIsMounted(true);
     // Only fetch active branches that have coordinates
     api.get('/api/v1/branches')
       .then(res => {
@@ -38,7 +41,7 @@ export default function BranchLocatorMap() {
       .catch(console.error);
   }, []);
 
-  if (typeof window === 'undefined') return null; // Prevent SSR issues with Leaflet
+  if (!isMounted || typeof window === 'undefined') return null; // Prevent SSR and StrictMode issues
 
   // Default center to Vietnam
   const center: [number, number] = [16.047079, 108.206230];
