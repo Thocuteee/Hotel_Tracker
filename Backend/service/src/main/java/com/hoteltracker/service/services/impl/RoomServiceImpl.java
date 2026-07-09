@@ -11,6 +11,8 @@ import com.hoteltracker.service.mappers.RoomTypeMapper;
 import com.hoteltracker.service.model.Room;
 import com.hoteltracker.service.model.RoomType;
 import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.Branch;
+import com.hoteltracker.service.repositories.BranchRepository;
 import com.hoteltracker.service.repositories.RoomRepository;
 import com.hoteltracker.service.repositories.RoomTypeRepository;
 import com.hoteltracker.service.services.RoomService;
@@ -26,6 +28,7 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomTypeRepository roomTypeRepository;
     private final RoomRepository roomRepository;
+    private final BranchRepository branchRepository;
     private final RoomTypeMapper roomTypeMapper;
     private final RoomMapper roomMapper;
 
@@ -34,7 +37,13 @@ public class RoomServiceImpl implements RoomService {
         if (roomTypeRepository.existsByName(request.getName())) {
             throw new DuplicateResourceException("Tên loại phòng đã tồn tại!");
         }
+
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Chi nhánh với ID: " + request.getBranchId()));
+
         RoomType roomType = roomTypeMapper.toEntity(request);
+        roomType.setBranch(branch);
+
         return roomTypeMapper.toResponse(roomTypeRepository.save(roomType));
     }
 
@@ -56,6 +65,10 @@ public class RoomServiceImpl implements RoomService {
     public RoomTypeResponse updateRoomType(Integer id, RoomTypeRequest request) {
         RoomType roomType = roomTypeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + id));
+        
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Chi nhánh với ID: " + request.getBranchId()));
+
         roomType.setName(request.getName());
         roomType.setBasePrice(request.getBasePrice());
         roomType.setCapacity(request.getCapacity());
@@ -64,6 +77,9 @@ public class RoomServiceImpl implements RoomService {
         roomType.setDiscount(request.getDiscount() != null ? request.getDiscount() : 0);
         roomType.setDiscountStart(request.getDiscountStart());
         roomType.setDiscountEnd(request.getDiscountEnd());
+        roomType.setIsRecommended(request.getIsRecommended() != null ? request.getIsRecommended() : false);
+        roomType.setBranch(branch);
+
         return roomTypeMapper.toResponse(roomTypeRepository.save(roomType));
     }
 

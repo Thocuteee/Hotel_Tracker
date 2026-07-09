@@ -1,16 +1,16 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Trash2, 
-  Edit3, 
-  Wifi, 
-  Snowflake, 
-  Tv, 
-  Coffee, 
-  Key, 
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit3,
+  Wifi,
+  Snowflake,
+  Tv,
+  Coffee,
+  Key,
   ChevronLeft,
   ChevronRight,
   X,
@@ -56,7 +56,7 @@ export default function AdminRoomManagement() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Filters for Rooms
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -71,7 +71,7 @@ export default function AdminRoomManagement() {
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [roomModalMode, setRoomModalMode] = useState<'add' | 'edit'>('add');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
-  
+
   // Room Type Modal states (Add/Edit)
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [typeModalMode, setTypeModalMode] = useState<'add' | 'edit'>('add');
@@ -84,7 +84,7 @@ export default function AdminRoomManagement() {
   // Delete confirm modal states
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteConfirmType, setDeleteConfirmType] = useState<{ id: number; name: string } | null>(null);
-  
+
   // Form states for Rooms
   const [formNumber, setFormNumber] = useState('');
   const [formRoomTypeId, setFormRoomTypeId] = useState<number>(0);
@@ -372,7 +372,7 @@ export default function AdminRoomManagement() {
     setFormTypeDiscount(type.discount || 0);
     setFormTypeDiscountStart(type.discountStart ? type.discountStart.substring(0, 16) : '');
     setFormTypeDiscountEnd(type.discountEnd ? type.discountEnd.substring(0, 16) : '');
-    
+
     let imgStr = '';
     if (type.images) {
       try {
@@ -462,7 +462,7 @@ export default function AdminRoomManagement() {
   const filteredRooms = rooms.filter(room => {
     if (statusFilter !== 'all' && room.status !== statusFilter) return false;
     if (typeFilter !== 'all' && room.type !== typeFilter) return false;
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return room.number.includes(query) || room.type.toLowerCase().includes(query);
@@ -499,7 +499,7 @@ export default function AdminRoomManagement() {
 
   return (
     <div className="flex w-full relative">
-      
+
       {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
         {toasts.map(t => (
@@ -509,27 +509,25 @@ export default function AdminRoomManagement() {
 
       {/* Main Area */}
       <div className="flex-1 flex flex-col space-y-6">
-        
+
         {/* --- SubTab Switcher matching Sidebar design tabs --- */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex gap-6">
             <button
               onClick={() => { setActiveTab('types'); setSelectedRoom(null); }}
-              className={`pb-3 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'types'
+              className={`pb-3 text-sm font-bold transition-all relative cursor-pointer ${activeTab === 'types'
                   ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
                   : 'text-slate-400 hover:text-slate-700'
-              }`}
+                }`}
             >
               Room Types
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              className={`pb-3 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'rooms'
+              className={`pb-3 text-sm font-bold transition-all relative cursor-pointer ${activeTab === 'rooms'
                   ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600'
                   : 'text-slate-400 hover:text-slate-700'
-              }`}
+                }`}
             >
               Room Grid
             </button>
@@ -583,13 +581,12 @@ export default function AdminRoomManagement() {
             {/* Quick Tag Filters */}
             <div className="flex gap-2">
               {['All Suites', 'Deluxe', 'Ocean Front', 'Executive', 'Penthouse'].map((tag, idx) => (
-                <span 
+                <span
                   key={idx}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide cursor-pointer transition-colors ${
-                    idx === 0 
-                      ? 'bg-indigo-600 text-white' 
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide cursor-pointer transition-colors ${idx === 0
+                      ? 'bg-indigo-600 text-white'
                       : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </span>
@@ -601,7 +598,7 @@ export default function AdminRoomManagement() {
               {filteredTypes.map((type, index) => {
                 const imgUrl = getRoomTypeImage(type.images);
                 const totalRoomsCount = rooms.filter(r => r.roomTypeId === type.id).length;
-                
+
                 const startValid = !type.discountStart || new Date(type.discountStart) <= timeForCountdown;
                 const endValid = !type.discountEnd || new Date(type.discountEnd) >= timeForCountdown;
                 const hasDiscount = !!type.discount && type.discount > 0 && startValid && endValid;
@@ -610,15 +607,15 @@ export default function AdminRoomManagement() {
                 // Layout 1: Executive Ocean Suite (Featured layout - First item)
                 if (index === 0) {
                   return (
-                    <div 
-                      key={type.id} 
+                    <div
+                      key={type.id}
                       className="col-span-full bg-white dark:bg-[#0B0F19] rounded-[24px] border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col md:flex-row h-auto md:h-80"
                     >
                       <div className="relative w-full md:w-1/2 h-56 md:h-full bg-slate-150">
-                        <img 
-                          src={imgUrl} 
-                          alt={type.name} 
-                          className="h-full w-full object-cover" 
+                        <img
+                          src={imgUrl}
+                          alt={type.name}
+                          className="h-full w-full object-cover"
                           onError={(e) => {
                             e.currentTarget.src = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=600&auto=format&fit=crop';
                           }}
@@ -652,13 +649,13 @@ export default function AdminRoomManagement() {
                               {type.name}
                             </h3>
                             <div className="flex gap-1.5">
-                              <button 
+                              <button
                                 onClick={() => handleOpenEditType(type)}
                                 className="p-1.5 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                               >
                                 <Edit3 className="h-4 w-4" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setDeleteConfirmType({ id: type.id, name: type.name })}
                                 className="p-1.5 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                               >
@@ -680,7 +677,7 @@ export default function AdminRoomManagement() {
                           {/* Utilities list */}
                           <div className="flex flex-wrap gap-2 pt-2">
                             {getUtilitiesForType(type.name).map((util, i) => (
-                              <span 
+                              <span
                                 key={i}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-[10px] font-extrabold"
                               >
@@ -712,8 +709,8 @@ export default function AdminRoomManagement() {
                               )}
                             </div>
                           </div>
-                          
-                          <button 
+
+                          <button
                             onClick={() => handleViewType(type)}
                             className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer"
                           >
@@ -727,15 +724,15 @@ export default function AdminRoomManagement() {
 
                 // Layout 2: Standard/Deluxe grid layouts (Including index >= 1)
                 return (
-                  <div 
-                    key={type.id} 
+                  <div
+                    key={type.id}
                     className="bg-white dark:bg-[#0B0F19] rounded-[24px] border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between h-[340px]"
                   >
                     <div className="relative h-40 w-full bg-slate-100">
-                      <img 
-                        src={imgUrl} 
-                        alt={type.name} 
-                        className="h-full w-full object-cover" 
+                      <img
+                        src={imgUrl}
+                        alt={type.name}
+                        className="h-full w-full object-cover"
                         onError={(e) => {
                           e.currentTarget.src = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=600&auto=format&fit=crop';
                         }}
@@ -766,13 +763,13 @@ export default function AdminRoomManagement() {
                             {type.name}
                           </h3>
                           <div className="flex gap-1">
-                            <button 
+                            <button
                               onClick={() => handleOpenEditType(type)}
                               className="p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                             >
                               <Edit3 className="h-3.5 w-3.5" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => setDeleteConfirmType({ id: type.id, name: type.name })}
                               className="p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                             >
@@ -802,7 +799,7 @@ export default function AdminRoomManagement() {
                             </span>
                           )}
                         </div>
-                        <button 
+                        <button
                           onClick={() => handleViewType(type)}
                           className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                         >
@@ -815,7 +812,7 @@ export default function AdminRoomManagement() {
               })}
 
               {/* Add Category Dotted Card */}
-              <div 
+              <div
                 onClick={handleOpenAddType}
                 className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-600/50 dark:hover:border-indigo-400/50 rounded-[24px] p-6 flex flex-col items-center justify-center text-center space-y-3 cursor-pointer transition-colors h-[340px]"
               >
@@ -896,7 +893,7 @@ export default function AdminRoomManagement() {
                     <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {roomsByFloor[floor].map(room => {
                         const isSelected = selectedRoom?.id === room.id;
-                        
+
                         // Status styling properties
                         let borderLeftColor = 'border-l-indigo-600';
                         let badgeBgColor = 'bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-455';
@@ -917,12 +914,11 @@ export default function AdminRoomManagement() {
                         }
 
                         return (
-                          <div 
-                            key={room.id} 
+                          <div
+                            key={room.id}
                             onClick={() => setSelectedRoom(room)}
-                            className={`bg-white dark:bg-[#0B0F19] rounded-2xl border-y border-r border-l-[4px] border-slate-200/60 dark:border-slate-800/80 ${borderLeftColor} p-5 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md cursor-pointer ${
-                              isSelected ? 'ring-2 ring-indigo-600/35 dark:ring-indigo-400/30' : ''
-                            }`}
+                            className={`bg-white dark:bg-[#0B0F19] rounded-2xl border-y border-r border-l-[4px] border-slate-200/60 dark:border-slate-800/80 ${borderLeftColor} p-5 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-indigo-600/35 dark:ring-indigo-400/30' : ''
+                              }`}
                           >
                             <div className="flex items-center justify-between gap-1.5 flex-wrap">
                               <span className="text-base font-extrabold text-slate-900 dark:text-white shrink-0">
@@ -961,7 +957,7 @@ export default function AdminRoomManagement() {
                   {selectedRoom.type} Ocean View
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedRoom(null)}
                 className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-655 transition-colors cursor-pointer"
               >
@@ -972,10 +968,10 @@ export default function AdminRoomManagement() {
             <div className="space-y-2">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Hình ảnh phòng</span>
               <div className="h-32 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
-                <img 
-                  src={selectedRoom.image} 
-                  alt={selectedRoom.type} 
-                  className="h-full w-full object-cover" 
+                <img
+                  src={selectedRoom.image}
+                  alt={selectedRoom.type}
+                  className="h-full w-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=600&auto=format&fit=crop';
                   }}
@@ -995,8 +991,8 @@ export default function AdminRoomManagement() {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Trang thiết bị & tiện nghi</span>
               <div className="flex flex-wrap gap-2">
                 {selectedRoom.utilities.map((util, i) => (
-                  <span 
-                    key={i} 
+                  <span
+                    key={i}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-955/20 text-violet-750 dark:text-violet-400 text-[10px] font-extrabold border border-violet-100/40 dark:border-violet-900/30"
                   >
                     {renderUtilityIcon(util)}
@@ -1038,7 +1034,7 @@ export default function AdminRoomManagement() {
       {isRoomModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
           <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setIsRoomModalOpen(false)}
               className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-655 transition-colors"
             >
@@ -1062,7 +1058,7 @@ export default function AdminRoomManagement() {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Tầng</label>
                   <input
@@ -1121,20 +1117,20 @@ export default function AdminRoomManagement() {
       {isViewTypeModalOpen && viewedRoomType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
           <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setIsViewTypeModalOpen(false)}
               className="absolute right-4 top-4 z-10 p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <div className="h-64 w-full bg-slate-100 relative">
               {(() => {
                 let imgUrl = viewedRoomType.images || 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=1200&auto=format&fit=crop';
                 try {
                   const parsed = JSON.parse(viewedRoomType.images);
                   if (parsed && parsed.length > 0) imgUrl = parsed[0];
-                } catch(e) {}
+                } catch (e) { }
                 return (
                   <img src={imgUrl} alt={viewedRoomType.name} className="h-full w-full object-cover" />
                 );
@@ -1185,7 +1181,7 @@ export default function AdminRoomManagement() {
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Tiện ích bao gồm</h3>
                 <div className="flex flex-wrap gap-2">
                   {getUtilitiesForType(viewedRoomType.name).map((util, i) => (
-                    <span 
+                    <span
                       key={i}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs font-bold"
                     >
@@ -1223,7 +1219,7 @@ export default function AdminRoomManagement() {
       {isTypeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setIsTypeModalOpen(false)}
               className="absolute right-6 top-6 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-655 transition-colors"
             >
@@ -1300,7 +1296,7 @@ export default function AdminRoomManagement() {
                     className="h-10 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-650 focus:outline-none transition-colors"
                   />
                 </div>
-                
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Bắt đầu</label>
                   <input

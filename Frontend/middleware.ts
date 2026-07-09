@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 
 const routePermissions: Record<string, string[]> = {
   '/admin/employees': ['ADMIN'],
+  '/admin/customers': ['ADMIN', 'RECEPTIONIST'],
+  '/admin/bookings': ['ADMIN', 'RECEPTIONIST'],
 };
 
 export function middleware(request: NextRequest) {
@@ -36,6 +38,15 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // 1b. Check if user is accessing customer booking or checkout routes
+  if (pathname.startsWith('/checkout') || pathname.startsWith('/bookings')) {
+    if (!token) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
   // 2. If logged in, block accessing login/register pages
   if (pathname === '/login' || pathname === '/register') {
     if (token) {
@@ -51,6 +62,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/admin/:path*',
+    '/checkout',
+    '/bookings',
     '/login',
     '/register'
   ]

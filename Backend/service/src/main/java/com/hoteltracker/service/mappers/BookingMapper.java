@@ -15,6 +15,9 @@ public class BookingMapper {
     @Autowired
     private RoomMapper roomMapper;
 
+    @Autowired
+    private RoomTypeMapper roomTypeMapper;
+
     public BookingResponse toResponse(Booking booking) {
         if (booking == null) {
             return null;
@@ -22,7 +25,9 @@ public class BookingMapper {
         return BookingResponse.builder()
                 .id(booking.getId())
                 .customer(userMapper.toResponse(booking.getCustomer()))
-                .room(roomMapper.toResponse(booking.getRoom()))
+                .roomType(roomTypeMapper.toResponse(booking.getRoomType()))
+                .room(booking.getRoom() != null ? roomMapper.toResponse(booking.getRoom()) : null)
+                .assignedRoomNumber(booking.getRoom() != null ? booking.getRoom().getRoomNumber() : null)
                 .checkInDate(booking.getCheckInDate())
                 .checkOutDate(booking.getCheckOutDate())
                 .status(booking.getStatus())
@@ -38,6 +43,9 @@ public class BookingMapper {
         return Booking.builder()
                 .checkInDate(request.getCheckInDate())
                 .checkOutDate(request.getCheckOutDate())
+                .numAdults(request.getNumAdults())
+                .numChildren(request.getNumChildren())
+                .specialRequests(request.getSpecialRequests())
                 .build();
     }
 }

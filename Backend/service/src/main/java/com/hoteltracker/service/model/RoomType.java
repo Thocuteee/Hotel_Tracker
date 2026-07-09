@@ -44,4 +44,12 @@ public class RoomType {
 
     @Column(name = "discount_end")
     private LocalDateTime discountEnd;
+
+    @Column(name = "is_recommended")
+    @Builder.Default
+    private Boolean isRecommended = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 }

@@ -1,7 +1,9 @@
 package com.hoteltracker.service.controller;
 
 import com.hoteltracker.service.dtos.request.BookingRequest;
+import com.hoteltracker.service.dtos.request.LockRoomRequest;
 import com.hoteltracker.service.dtos.response.BookingResponse;
+import com.hoteltracker.service.dtos.response.LockRoomResponse;
 import com.hoteltracker.service.model.enums.BookingStatus;
 import com.hoteltracker.service.services.BookingService;
 import jakarta.validation.Valid;
@@ -19,9 +21,16 @@ public class BookingController {
 
     private final BookingService bookingService;
 
+    @PostMapping("/lock")
+    public ResponseEntity<LockRoomResponse> lockRoom(@Valid @RequestBody LockRoomRequest request) {
+        return ResponseEntity.ok(bookingService.lockRoom(request));
+    }
+
     @PostMapping
-    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
-        return new ResponseEntity<>(bookingService.createBooking(request), HttpStatus.CREATED);
+    public ResponseEntity<BookingResponse> createBooking(
+            @Valid @RequestBody BookingRequest request,
+            @RequestParam(required = false) String lockKey) {
+        return new ResponseEntity<>(bookingService.createBooking(request, lockKey), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")

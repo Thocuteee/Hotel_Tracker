@@ -26,4 +26,8 @@ public class RoomTypeRequest {
     private Integer discount;
     private LocalDateTime discountStart;
     private LocalDateTime discountEnd;
+    private Boolean isRecommended;
+
+    @NotNull(message = "Chi nhánh không được để trống")
+    private Integer branchId;
 }

@@ -12,7 +12,9 @@ import java.time.LocalDateTime;
 public class BookingResponse {
     private Integer id;
     private UserResponse customer;
+    private RoomTypeResponse roomType;
     private RoomResponse room;
+    private String assignedRoomNumber;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     private BookingStatus status;

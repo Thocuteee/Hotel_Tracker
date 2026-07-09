@@ -22,6 +22,8 @@ public class RoomTypeMapper {
                 .discount(roomType.getDiscount())
                 .discountStart(roomType.getDiscountStart())
                 .discountEnd(roomType.getDiscountEnd())
+                .isRecommended(roomType.getIsRecommended())
+                .branchId(roomType.getBranch() != null ? roomType.getBranch().getId() : null)
                 .build();
     }
 
@@ -38,6 +40,7 @@ public class RoomTypeMapper {
                 .discount(request.getDiscount() != null ? request.getDiscount() : 0)
                 .discountStart(request.getDiscountStart())
                 .discountEnd(request.getDiscountEnd())
+                .isRecommended(request.getIsRecommended() != null ? request.getIsRecommended() : false)
                 .build();
     }
 }

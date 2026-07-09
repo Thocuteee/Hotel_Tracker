@@ -17,4 +17,7 @@ public class RoomTypeResponse {
     private Integer discount;
     private LocalDateTime discountStart;
     private LocalDateTime discountEnd;
+    private Boolean isRecommended;
+    private Integer branchId;
+    private Integer availableRooms;
 }

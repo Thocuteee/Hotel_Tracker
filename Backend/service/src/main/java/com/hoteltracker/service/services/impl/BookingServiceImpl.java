@@ -22,6 +22,12 @@ import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.UUID;
+import com.hoteltracker.service.repositories.RoomTypeRepository;
+import com.hoteltracker.service.model.RoomType;
+import com.hoteltracker.service.services.RedisLockService;
+import com.hoteltracker.service.dtos.request.LockRoomRequest;
+import com.hoteltracker.service.dtos.response.LockRoomResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -30,11 +36,44 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
     private final BookingMapper bookingMapper;
+    private final RedisLockService redisLockService;
+
+    @Override
+    public LockRoomResponse lockRoom(LockRoomRequest request) {
+        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) || 
+            request.getCheckOutDate().isEqual(request.getCheckInDate())) {
+            throw new BadRequestException("Ngày trả phòng phải sau ngày nhận phòng!");
+        }
+
+        RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hạng phòng"));
+
+        long totalRooms = roomRepository.countByRoomTypeId(roomType.getId());
+        long overlappingBookings = bookingRepository.countOverlappingBookings(roomType.getId(), request.getCheckInDate(), request.getCheckOutDate());
+        long lockedSlots = redisLockService.countLockedSlots(roomType.getId());
+
+        if (totalRooms - overlappingBookings - lockedSlots <= 0) {
+            throw new BadRequestException("Hạng phòng này đã hết chỗ trong khoảng thời gian đã chọn!");
+        }
+
+        String lockKey = UUID.randomUUID().toString();
+        boolean locked = redisLockService.acquireLock(roomType.getId(), lockKey, 15);
+        
+        if (!locked) {
+            throw new BadRequestException("Không thể giữ chỗ lúc này, vui lòng thử lại!");
+        }
+
+        return LockRoomResponse.builder()
+                .lockKey(lockKey)
+                .expirationMinutes(15L)
+                .build();
+    }
 
     @Override
     @Transactional 
-    public BookingResponse createBooking(BookingRequest request) {
+    public BookingResponse createBooking(BookingRequest request, String lockKey) {
         if (request.getCheckOutDate().isBefore(request.getCheckInDate()) || 
             request.getCheckOutDate().isEqual(request.getCheckInDate())) {
             throw new BadRequestException("Ngày trả phòng phải sau ngày nhận phòng!");
@@ -43,25 +82,57 @@ public class BookingServiceImpl implements BookingService {
         User customer = userRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Khách hàng"));
                 
-        Room room = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng"));
+        RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hạng phòng"));
 
-        if (room.getStatus() != RoomStatus.AVAILABLE) {
-            throw new BadRequestException("Phòng này hiện không có sẵn để đặt!");
+        long totalRooms = roomRepository.countByRoomTypeId(roomType.getId());
+        long overlappingBookings = bookingRepository.countOverlappingBookings(roomType.getId(), request.getCheckInDate(), request.getCheckOutDate());
+        
+        if (lockKey == null || lockKey.isEmpty()) {
+            long lockedSlots = redisLockService.countLockedSlots(roomType.getId());
+            if (totalRooms - overlappingBookings - lockedSlots <= 0) {
+                throw new BadRequestException("Hạng phòng này đã hết chỗ trong khoảng thời gian đã chọn!");
+            }
         }
 
         long days = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
-        BigDecimal totalPrice = room.getRoomType().getBasePrice().multiply(BigDecimal.valueOf(days));
+        
+        BigDecimal pricePerNight = roomType.getBasePrice();
+        if (roomType.getDiscount() != null && roomType.getDiscount() > 0 && roomType.getDiscountEnd() != null) {
+            if (java.time.LocalDateTime.now().isBefore(roomType.getDiscountEnd())) {
+                pricePerNight = pricePerNight.multiply(BigDecimal.valueOf(100 - roomType.getDiscount())).divide(BigDecimal.valueOf(100));
+            }
+        }
+        
+        BigDecimal totalPrice = pricePerNight.multiply(BigDecimal.valueOf(days));
 
         Booking booking = bookingMapper.toEntity(request);
         booking.setCustomer(customer);
-        booking.setRoom(room);
-        booking.setStatus(BookingStatus.PENDING); 
+        booking.setRoomType(roomType);
+        
+        if (request.getRoomId() != null) {
+            Room room = roomRepository.findById(request.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng"));
+            if (room.getStatus() != RoomStatus.AVAILABLE) {
+                throw new BadRequestException("Phòng vật lý này không khả dụng!");
+            }
+            booking.setRoom(room);
+            room.setStatus(RoomStatus.OCCUPIED);
+            roomRepository.save(room);
+            booking.setStatus(BookingStatus.CHECKED_IN);
+        } else {
+            booking.setStatus(BookingStatus.PENDING);
+        }
+        
         booking.setTotalPrice(totalPrice);
-        room.setStatus(RoomStatus.OCCUPIED);
-        roomRepository.save(room);
 
-        return bookingMapper.toResponse(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+
+        if (lockKey != null && !lockKey.isEmpty()) {
+            redisLockService.releaseLock(roomType.getId(), lockKey);
+        }
+
+        return bookingMapper.toResponse(savedBooking);
     }
 
     @Override
@@ -86,8 +157,10 @@ public class BookingServiceImpl implements BookingService {
         
         if (status == BookingStatus.CHECKED_OUT || status == BookingStatus.CANCELLED) {
             Room room = booking.getRoom();
-            room.setStatus(status == BookingStatus.CHECKED_OUT ? RoomStatus.DIRTY : RoomStatus.AVAILABLE);
-            roomRepository.save(room);
+            if (room != null) {
+                room.setStatus(status == BookingStatus.CHECKED_OUT ? RoomStatus.DIRTY : RoomStatus.AVAILABLE);
+                roomRepository.save(room);
+            }
         }
         
         return bookingMapper.toResponse(bookingRepository.save(booking));
@@ -110,18 +183,26 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Ngày trả phòng phải sau ngày nhận phòng!");
         }
 
-        Room room = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng"));
+        RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Hạng phòng"));
 
         booking.setCheckInDate(request.getCheckInDate());
         booking.setCheckOutDate(request.getCheckOutDate());
         booking.setNumAdults(request.getNumAdults());
         booking.setNumChildren(request.getNumChildren());
         booking.setSpecialRequests(request.getSpecialRequests());
-        booking.setRoom(room);
+        booking.setRoomType(roomType);
 
         long days = ChronoUnit.DAYS.between(request.getCheckInDate(), request.getCheckOutDate());
-        BigDecimal totalPrice = room.getRoomType().getBasePrice().multiply(BigDecimal.valueOf(days));
+        
+        BigDecimal pricePerNight = roomType.getBasePrice();
+        if (roomType.getDiscount() != null && roomType.getDiscount() > 0 && roomType.getDiscountEnd() != null) {
+            if (java.time.LocalDateTime.now().isBefore(roomType.getDiscountEnd())) {
+                pricePerNight = pricePerNight.multiply(BigDecimal.valueOf(100 - roomType.getDiscount())).divide(BigDecimal.valueOf(100));
+            }
+        }
+        
+        BigDecimal totalPrice = pricePerNight.multiply(BigDecimal.valueOf(days));
         booking.setTotalPrice(totalPrice);
         
         return bookingMapper.toResponse(bookingRepository.save(booking));
@@ -133,8 +214,10 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Booking ID: " + id));
         
         Room room = booking.getRoom();
-        room.setStatus(RoomStatus.AVAILABLE);
-        roomRepository.save(room);
+        if (room != null) {
+            room.setStatus(RoomStatus.AVAILABLE);
+            roomRepository.save(room);
+        }
 
         bookingRepository.delete(booking);
     }

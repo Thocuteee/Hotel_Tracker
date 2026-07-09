@@ -51,6 +51,22 @@ export default function BookingsPage() {
       router.push('/login');
     } else {
       setIsAuthenticated(true);
+      const simulated = JSON.parse(localStorage.getItem('simulated_bookings') || '[]');
+      const mappedSimulated = simulated.map((b: any) => ({
+        id: b.id,
+        roomName: b.roomTypeName,
+        image: b.roomTypeName.includes("Ocean") 
+          ? "https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=2064&auto=format&fit=crop"
+          : b.roomTypeName.includes("Garden")
+            ? "https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=2025&auto=format&fit=crop"
+            : "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=2025&auto=format&fit=crop",
+        checkIn: b.checkIn,
+        checkOut: b.checkOut,
+        totalPrice: b.totalPrice,
+        status: b.status === 'PENDING_LATE' ? 'PENDING' : b.status,
+        guests: 2
+      }));
+      setBookings([...mappedSimulated, ...mockBookings]);
     }
     setLoading(false);
   }, [router]);

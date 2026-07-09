@@ -10,7 +10,9 @@ public class BookingRequest {
     @NotNull(message = "ID khách hàng không được để trống")
     private Integer customerId;
 
-    @NotNull(message = "ID phòng không được để trống")
+    @NotNull(message = "ID Hạng phòng không được để trống")
+    private Integer roomTypeId;
+
     private Integer roomId;
 
     @NotNull(message = "Ngày nhận phòng không được để trống")
