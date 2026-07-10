@@ -80,6 +80,13 @@ public class RoomType {
     @Column(name = "extra_bed_allowed")
     @Builder.Default
     private Boolean extraBedAllowed = false;
+    
+    @Column(name = "breakfast_included")
+    @Builder.Default
+    private Boolean breakfastIncluded = false; // Added breakfast_included field
+
+    @Column(name = "room_size", length = 20)
+    private String roomSize; // Added room_size field
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id")
