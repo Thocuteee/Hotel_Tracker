@@ -22,4 +22,8 @@ public class SearchRequest {
     private Boolean breakfastIncluded; // Bữa sáng
     private Boolean freeCancellation; // Hủy miễn phí
     private Boolean payAtHotel; // Thanh toán tại chỗ
+    private String sort; // RECOMMENDED, PRICE_LOW_TO_HIGH, PRICE_HIGH_TO_LOW, RATING
+    private Integer adults;
+    private Integer children;
+    private Integer rooms;
 }

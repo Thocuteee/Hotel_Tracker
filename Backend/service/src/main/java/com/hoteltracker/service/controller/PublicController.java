@@ -34,22 +34,40 @@ public class PublicController {
         return ResponseEntity.ok(publicService.searchRoomTypes(branchId, checkInDate, checkOutDate));
     }
 
-    @GetMapping("/search-hotels")
-    public ResponseEntity<List<HotelCardResponse>> searchHotels(
-            @RequestParam String destination,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate,
-            @RequestParam(required = false, defaultValue = "1") Integer numberOfGuests,
-            @RequestParam(required = false, defaultValue = "1") Integer numberOfRooms) {
+    @GetMapping("/search-properties")
+    public ResponseEntity<List<HotelCardResponse>> searchProperties(
+            @RequestParam(required = false) String destination,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate,
+            @RequestParam(required = false, defaultValue = "1") Integer adults,
+            @RequestParam(required = false, defaultValue = "0") Integer children,
+            @RequestParam(required = false, defaultValue = "1") Integer rooms,
+            @RequestParam(required = false) List<String> propertyTypes,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Integer minStarRating,
+            @RequestParam(required = false) Integer maxStarRating,
+            @RequestParam(required = false) Double minReviewScore,
+            @RequestParam(required = false) List<String> amenities,
+            @RequestParam(required = false) String sort) {
         
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.setDestination(destination);
-        searchRequest.setCheckInDate(checkInDate);
-        searchRequest.setCheckOutDate(checkOutDate);
-        searchRequest.setNumberOfGuests(numberOfGuests);
-        searchRequest.setNumberOfRooms(numberOfRooms);
+        searchRequest.setCheckInDate(checkInDate != null ? checkInDate : LocalDate.now());
+        searchRequest.setCheckOutDate(checkOutDate != null ? checkOutDate : LocalDate.now().plusDays(1));
+        searchRequest.setAdults(adults);
+        searchRequest.setChildren(children);
+        searchRequest.setRooms(rooms);
+        searchRequest.setPropertyTypes(propertyTypes);
+        searchRequest.setMinPrice(minPrice);
+        searchRequest.setMaxPrice(maxPrice);
+        searchRequest.setMinStarRating(minStarRating);
+        searchRequest.setMaxStarRating(maxStarRating);
+        searchRequest.setMinReviewScore(minReviewScore);
+        searchRequest.setAmenities(amenities);
+        searchRequest.setSort(sort != null ? sort : "RECOMMENDED");
 
-        return ResponseEntity.ok(publicService.searchHotels(searchRequest));
+        return ResponseEntity.ok(publicService.searchProperties(searchRequest));
     }
 
     @GetMapping("/hotels/{branchId}")

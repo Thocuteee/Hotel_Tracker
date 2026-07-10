@@ -14,7 +14,7 @@ public class HotelCardResponse {
     private Double reviewScore; // Cần tính toán hoặc giả định
     private List<String> highlightedAmenities; // Tiện nghi nổi bật
     private BigDecimal lowestPriceAvailable; // Giá thấp nhất của một hạng phòng còn trống
-    private Integer availableRooms;
+    private Integer availableRoomCount;
     private String availableRoomsMessage; // Ví dụ: "Còn 3 phòng" hoặc "Hết phòng"
     private String imageUrl; // Ảnh đại diện của khách sạn
 }

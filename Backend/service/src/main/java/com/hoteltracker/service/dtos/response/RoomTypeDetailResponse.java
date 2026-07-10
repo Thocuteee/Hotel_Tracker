@@ -14,7 +14,7 @@ public class RoomTypeDetailResponse {
     private Integer capacity;
     private String size; // e.g., "35m²"
     private List<String> amenities;
-    private Integer availableRooms; // Number of available rooms of this type
+    private Integer availableRoomCount; // Number of available rooms of this type
     private Boolean breakfastIncluded;
     private Boolean freeCancellation;
 }

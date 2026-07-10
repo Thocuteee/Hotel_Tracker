@@ -2,7 +2,8 @@ package com.hoteltracker.service.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import com.hoteltracker.service.model.enums.PropertyType;
+import com.hoteltracker.service.model.enums.BranchStatus;
 import java.util.List;
 import java.util.Set;
 
@@ -37,6 +38,30 @@ public class Branch {
     
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "property_type")
+    @Builder.Default
+    private PropertyType propertyType = PropertyType.HOTEL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    @Builder.Default
+    private BranchStatus status = BranchStatus.ACTIVE;
+
+    @Column(name = "star_rating")
+    private Integer starRating;
+
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "check_in_time")
+    @Builder.Default
+    private String checkInTime = "14:00";
+
+    @Column(name = "check_out_time")
+    @Builder.Default
+    private String checkOutTime = "12:00";
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

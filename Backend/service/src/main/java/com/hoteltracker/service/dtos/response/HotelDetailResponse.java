@@ -12,11 +12,14 @@ public class HotelDetailResponse {
     private Double longitude;
     private String phone;
     private String description;
-    private String imageUrl; // Main image
-    private List<String> galleryImages; // Additional images
+    private String imageUrl; 
+    private List<String> galleryImages; 
     private Integer starRating;
     private Double reviewScore;
-    private List<String> amenities; // General hotel amenities
-    private String policies; // Hotel policies
+    private List<String> amenities; 
+    private String policies; 
     private List<RoomTypeDetailResponse> roomTypes;
+    private String email;
+    private String checkInTime;
+    private String checkOutTime;
 }

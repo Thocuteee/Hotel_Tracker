@@ -39,11 +39,11 @@ interface Branch {
 }
 
 const propertyTypes = [
-  { name: 'Khách sạn', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Căn hộ', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Resort', image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Biệt thự', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=600&auto=format&fit=crop' },
-  { name: 'Nhà gỗ', image: 'https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Khách sạn', type: 'HOTEL', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Căn hộ', type: 'APARTMENT', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Resort', type: 'RESORT', image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Biệt thự', type: 'VILLA', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=600&auto=format&fit=crop' },
+  { name: 'Nhà gỗ', type: 'CABIN', image: 'https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=600&auto=format&fit=crop' },
 ];
 
 export default function PublicLandingPage() {
@@ -88,14 +88,16 @@ export default function PublicLandingPage() {
   };
 
   const handleSearch = () => {
-    let query = `/search?destination=${destination}`;
-    if (checkInDate) query += `&checkIn=${format(checkInDate, 'yyyy-MM-dd')}`;
-    if (checkOutDate) query += `&checkOut=${format(checkOutDate, 'yyyy-MM-dd')}`;
+    const checkInStr = checkInDate ? format(checkInDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+    const checkOutStr = checkOutDate ? format(checkOutDate, 'yyyy-MM-dd') : format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
+    let query = `/search?destination=${destination}&checkIn=${checkInStr}&checkOut=${checkOutStr}`;
     router.push(query);
   };
 
   const navigateToBranch = (branchId: number) => {
-    router.push(`/branch/${branchId}`);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
+    router.push(`/hotel/${branchId}?checkIn=${today}&checkOut=${tomorrow}`);
   };
 
   // Animation variants
@@ -228,7 +230,14 @@ export default function PublicLandingPage() {
           <CarouselContent>
             {propertyTypes.map((type, index) => (
               <CarouselItem key={index} className="md:basis-1/3 lg:basis-1/4 pl-4">
-                <div className="flex flex-col space-y-3 cursor-pointer group">
+                <div 
+                  onClick={() => {
+                    const today = format(new Date(), 'yyyy-MM-dd');
+                    const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
+                    router.push(`/search?propertyType=${type.type}&checkIn=${today}&checkOut=${tomorrow}`);
+                  }}
+                  className="flex flex-col space-y-3 cursor-pointer group"
+                >
                   <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100">
                     <img
                       src={type.image}

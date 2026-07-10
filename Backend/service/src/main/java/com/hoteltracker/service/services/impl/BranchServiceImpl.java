@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hoteltracker.service.model.enums.PropertyType;
+import com.hoteltracker.service.model.enums.BranchStatus;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,6 +63,14 @@ public class BranchServiceImpl implements BranchService {
         branch.setPhone(request.getPhone());
         branch.setDescription(request.getDescription());
         branch.setImageUrl(request.getImageUrl());
+        branch.setPropertyType(request.getPropertyType() != null ? PropertyType.valueOf(request.getPropertyType()) : PropertyType.HOTEL);
+        branch.setStatus(request.getStatus() != null ? BranchStatus.valueOf(request.getStatus()) : BranchStatus.ACTIVE);
+        branch.setStarRating(request.getStarRating());
+        branch.setEmail(request.getEmail());
+        branch.setCheckInTime(request.getCheckInTime() != null ? request.getCheckInTime() : "14:00");
+        branch.setCheckOutTime(request.getCheckOutTime() != null ? request.getCheckOutTime() : "12:00");
+        branch.setLatitude(request.getLatitude());
+        branch.setLongitude(request.getLongitude());
 
         Branch updatedBranch = branchRepository.save(branch);
         return branchMapper.toResponse(updatedBranch);

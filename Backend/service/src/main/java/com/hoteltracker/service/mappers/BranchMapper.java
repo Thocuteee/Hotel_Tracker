@@ -23,6 +23,14 @@ public class BranchMapper {
                 .phone(branch.getPhone())
                 .description(branch.getDescription())
                 .imageUrl(branch.getImageUrl())
+                .propertyType(branch.getPropertyType() != null ? branch.getPropertyType().name() : "HOTEL")
+                .status(branch.getStatus() != null ? branch.getStatus().name() : "ACTIVE")
+                .starRating(branch.getStarRating() != null ? branch.getStarRating() : 4)
+                .email(branch.getEmail())
+                .checkInTime(branch.getCheckInTime() != null ? branch.getCheckInTime() : "14:00")
+                .checkOutTime(branch.getCheckOutTime() != null ? branch.getCheckOutTime() : "12:00")
+                .latitude(branch.getLatitude())
+                .longitude(branch.getLongitude())
                 .build();
     }
 
@@ -35,7 +43,7 @@ public class BranchMapper {
         response.setName(branch.getName());
         response.setAddress(branch.getAddress());
         response.setImageUrl(branch.getImageUrl());
-        // Các trường khác như starRating, reviewScore, lowestPriceAvailable... sẽ được set trong service
+        response.setStarRating(branch.getStarRating() != null ? branch.getStarRating() : 4);
         return response;
     }
     
@@ -52,6 +60,10 @@ public class BranchMapper {
         response.setPhone(branch.getPhone());
         response.setDescription(branch.getDescription());
         response.setImageUrl(branch.getImageUrl());
+        response.setEmail(branch.getEmail());
+        response.setCheckInTime(branch.getCheckInTime() != null ? branch.getCheckInTime() : "14:00");
+        response.setCheckOutTime(branch.getCheckOutTime() != null ? branch.getCheckOutTime() : "12:00");
+        response.setStarRating(branch.getStarRating() != null ? branch.getStarRating() : 4);
         // Giả sử galleryImages được lưu dưới dạng JSON trong một trường nào đó hoặc cần logic riêng
         response.setGalleryImages(Collections.emptyList()); 
         // roomTypes sẽ được set trong service
@@ -69,6 +81,14 @@ public class BranchMapper {
                 .phone(request.getPhone())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
+                .propertyType(request.getPropertyType() != null ? com.hoteltracker.service.model.enums.PropertyType.valueOf(request.getPropertyType()) : com.hoteltracker.service.model.enums.PropertyType.HOTEL)
+                .status(request.getStatus() != null ? com.hoteltracker.service.model.enums.BranchStatus.valueOf(request.getStatus()) : com.hoteltracker.service.model.enums.BranchStatus.ACTIVE)
+                .starRating(request.getStarRating())
+                .email(request.getEmail())
+                .checkInTime(request.getCheckInTime() != null ? request.getCheckInTime() : "14:00")
+                .checkOutTime(request.getCheckOutTime() != null ? request.getCheckOutTime() : "12:00")
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
     }
 }

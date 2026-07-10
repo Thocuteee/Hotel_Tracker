@@ -11,8 +11,6 @@ import java.util.List;
 public interface PublicService {
     List<RoomTypeResponse> getRecommendedRoomTypes();
     List<RoomTypeResponse> searchRoomTypes(Integer branchId, LocalDate checkInDate, LocalDate checkOutDate);
-    
-    // New methods for hotel search and details
-    List<HotelCardResponse> searchHotels(SearchRequest searchRequest);
+    List<HotelCardResponse> searchProperties(SearchRequest searchRequest);
     HotelDetailResponse getHotelDetails(Integer branchId, LocalDate checkInDate, LocalDate checkOutDate);
 }
