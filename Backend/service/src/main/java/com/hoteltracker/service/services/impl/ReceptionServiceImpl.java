@@ -9,7 +9,8 @@ import com.hoteltracker.service.mappers.RoomMapper;
 import com.hoteltracker.service.model.Booking;
 import com.hoteltracker.service.model.Room;
 import com.hoteltracker.service.model.enums.BookingStatus;
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.RoomBookingStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import com.hoteltracker.service.repositories.BookingRepository;
 import com.hoteltracker.service.repositories.RoomRepository;
 import com.hoteltracker.service.services.ReceptionService;
@@ -41,7 +42,7 @@ public class ReceptionServiceImpl implements ReceptionService {
 
     @Override
     public List<RoomResponse> getAvailableRoomsByRoomType(Integer roomTypeId) {
-        return roomRepository.findByRoomTypeIdAndStatus(roomTypeId, RoomStatus.AVAILABLE).stream()
+        return roomRepository.findByRoomTypeIdAndBookingStatusAndCleaningStatus(roomTypeId, RoomBookingStatus.AVAILABLE, CleaningStatus.CLEAN).stream()
                 .map(roomMapper::toResponse)
                 .collect(Collectors.toList());
     }
@@ -58,8 +59,8 @@ public class ReceptionServiceImpl implements ReceptionService {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng vật lý ID: " + roomId));
 
-        if (room.getStatus() != RoomStatus.AVAILABLE) {
-            throw new BadRequestException("Phòng này hiện không trống!");
+        if (room.getBookingStatus() != RoomBookingStatus.AVAILABLE || room.getCleaningStatus() != CleaningStatus.CLEAN) {
+            throw new BadRequestException("Phòng này hiện không trống hoặc chưa được dọn dẹp sạch sẽ!");
         }
 
         if (!room.getRoomType().getId().equals(booking.getRoomType().getId())) {
@@ -69,7 +70,7 @@ public class ReceptionServiceImpl implements ReceptionService {
         booking.setRoom(room);
         booking.setStatus(BookingStatus.CHECKED_IN);
         
-        room.setStatus(RoomStatus.OCCUPIED);
+        room.setBookingStatus(RoomBookingStatus.OCCUPIED);
         Room savedRoom = roomRepository.save(room);
 
         messagingTemplate.convertAndSend("/topic/room-status", roomMapper.toResponse(savedRoom));
@@ -88,7 +89,8 @@ public class ReceptionServiceImpl implements ReceptionService {
 
         Room room = booking.getRoom();
         if (room != null) {
-            room.setStatus(RoomStatus.DIRTY);
+            room.setBookingStatus(RoomBookingStatus.AVAILABLE);
+            room.setCleaningStatus(CleaningStatus.DIRTY);
             Room savedRoom = roomRepository.save(room);
             messagingTemplate.convertAndSend("/topic/room-status", roomMapper.toResponse(savedRoom));
         }

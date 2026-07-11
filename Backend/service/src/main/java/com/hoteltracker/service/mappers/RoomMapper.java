@@ -20,7 +20,9 @@ public class RoomMapper {
                 .id(room.getId())
                 .roomNumber(room.getRoomNumber())
                 .floor(room.getFloor())
-                .status(room.getStatus())
+                .bookingStatus(room.getBookingStatus() != null ? room.getBookingStatus() : com.hoteltracker.service.model.enums.RoomBookingStatus.AVAILABLE)
+                .cleaningStatus(room.getCleaningStatus() != null ? room.getCleaningStatus() : com.hoteltracker.service.model.enums.CleaningStatus.CLEAN)
+                .notes(room.getNotes())
                 .roomType(roomTypeMapper.toResponse(room.getRoomType()))
                 .build();
     }
@@ -32,7 +34,9 @@ public class RoomMapper {
         return Room.builder()
                 .roomNumber(request.getRoomNumber())
                 .floor(request.getFloor())
-                .status(request.getStatus())
+                .bookingStatus(request.getBookingStatus() != null ? request.getBookingStatus() : com.hoteltracker.service.model.enums.RoomBookingStatus.AVAILABLE)
+                .cleaningStatus(request.getCleaningStatus() != null ? request.getCleaningStatus() : com.hoteltracker.service.model.enums.CleaningStatus.CLEAN)
+                .notes(request.getNotes())
                 .build();
     }
 }

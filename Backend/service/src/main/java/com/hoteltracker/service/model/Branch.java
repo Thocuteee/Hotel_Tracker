@@ -63,6 +63,15 @@ public class Branch {
     @Builder.Default
     private String checkOutTime = "12:00";
 
+    @Column(name = "website")
+    private String website;
+
+    @Column(name = "slug")
+    private String slug;
+
+    @Column(name = "gallery_images", columnDefinition = "TEXT")
+    private String galleryImages;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "branch_services",
@@ -70,4 +79,12 @@ public class Branch {
         inverseJoinColumns = @JoinColumn(name = "service_id")
     )
     private Set<ServiceItem> services;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "branch_amenities",
+        joinColumns = @JoinColumn(name = "branch_id"),
+        inverseJoinColumns = @JoinColumn(name = "amenity_id")
+    )
+    private Set<Amenity> amenities;
 }

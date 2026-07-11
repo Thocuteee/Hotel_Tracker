@@ -10,7 +10,8 @@ import com.hoteltracker.service.mappers.RoomMapper;
 import com.hoteltracker.service.mappers.RoomTypeMapper;
 import com.hoteltracker.service.model.Room;
 import com.hoteltracker.service.model.RoomType;
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.RoomBookingStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import com.hoteltracker.service.model.Branch;
 import com.hoteltracker.service.repositories.BranchRepository;
 import com.hoteltracker.service.repositories.RoomRepository;
@@ -106,12 +107,18 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public RoomResponse createRoom(RoomRequest request) {
-        if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
-            throw new DuplicateResourceException("Số phòng này đã tồn tại!");
-        }
-        
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + request.getRoomTypeId()));
+
+        // Unique validation: roomNumber must be unique within this branch
+        Integer branchId = roomType.getBranch().getId();
+        List<RoomType> branchRoomTypes = roomTypeRepository.findByBranchId(branchId);
+        List<Integer> roomTypeIds = branchRoomTypes.stream().map(RoomType::getId).collect(Collectors.toList());
+        boolean exists = roomRepository.findAll().stream()
+                .anyMatch(r -> r.getRoomNumber().equals(request.getRoomNumber()) && roomTypeIds.contains(r.getRoomType().getId()));
+        if (exists) {
+            throw new DuplicateResourceException("Số phòng này đã tồn tại trong chi nhánh!");
+        }
 
         Room room = roomMapper.toEntity(request);
         room.setRoomType(roomType);
@@ -127,18 +134,17 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public List<RoomResponse> getRooms(Integer roomTypeId, RoomStatus status) {
-        List<Room> rooms;
-        if (roomTypeId != null && status != null) {
-            rooms = roomRepository.findByRoomTypeIdAndStatus(roomTypeId, status);
-        } else if (roomTypeId != null) {
-            rooms = roomRepository.findByRoomTypeId(roomTypeId);
-        } else if (status != null) {
-            rooms = roomRepository.findByStatus(status);
-        } else {
-            rooms = roomRepository.findAll();
+    public List<RoomResponse> getRooms(Integer roomTypeId, RoomBookingStatus bookingStatus, CleaningStatus cleaningStatus) {
+        List<Room> rooms = roomRepository.findAll();
+        if (roomTypeId != null) {
+            rooms = rooms.stream().filter(r -> r.getRoomType().getId().equals(roomTypeId)).collect(Collectors.toList());
         }
-        
+        if (bookingStatus != null) {
+            rooms = rooms.stream().filter(r -> r.getBookingStatus() == bookingStatus).collect(Collectors.toList());
+        }
+        if (cleaningStatus != null) {
+            rooms = rooms.stream().filter(r -> r.getCleaningStatus() == cleaningStatus).collect(Collectors.toList());
+        }
         return rooms.stream().map(roomMapper::toResponse).collect(Collectors.toList());
     }
 
@@ -150,9 +156,22 @@ public class RoomServiceImpl implements RoomService {
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Loại phòng với ID: " + request.getRoomTypeId()));
         
+        // Unique validation excluding this room
+        Integer branchId = roomType.getBranch().getId();
+        List<RoomType> branchRoomTypes = roomTypeRepository.findByBranchId(branchId);
+        List<Integer> roomTypeIds = branchRoomTypes.stream().map(RoomType::getId).collect(Collectors.toList());
+        boolean exists = roomRepository.findAll().stream()
+                .anyMatch(r -> !r.getId().equals(id) && r.getRoomNumber().equals(request.getRoomNumber()) && roomTypeIds.contains(r.getRoomType().getId()));
+        if (exists) {
+            throw new DuplicateResourceException("Số phòng này đã tồn tại trong chi nhánh!");
+        }
+
         room.setRoomNumber(request.getRoomNumber());
         room.setRoomType(roomType);
-        room.setStatus(request.getStatus());
+        room.setBookingStatus(request.getBookingStatus() != null ? request.getBookingStatus() : RoomBookingStatus.AVAILABLE);
+        room.setCleaningStatus(request.getCleaningStatus() != null ? request.getCleaningStatus() : CleaningStatus.CLEAN);
+        room.setNotes(request.getNotes());
+        room.setFloor(request.getFloor());
 
         return roomMapper.toResponse(roomRepository.save(room));
     }

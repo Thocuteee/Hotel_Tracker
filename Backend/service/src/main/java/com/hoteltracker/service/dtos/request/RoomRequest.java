@@ -1,6 +1,7 @@
 package com.hoteltracker.service.dtos.request;
 
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.RoomBookingStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -13,8 +14,11 @@ public class RoomRequest {
     @NotNull(message = "ID Loại phòng không được để trống")
     private Integer roomTypeId;
 
-    @NotNull(message = "Trạng thái phòng không được để trống")
-    private RoomStatus status;
+    private RoomBookingStatus bookingStatus;
+
+    private CleaningStatus cleaningStatus;
+
+    private String notes;
 
     @NotNull(message = "Tầng không được để trống")
     private Integer floor;

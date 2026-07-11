@@ -20,4 +20,7 @@ public class BranchResponse {
     private String checkOutTime;
     private Double latitude;
     private Double longitude;
+    private String website;
+    private String slug;
+    private String galleryImages;
 }

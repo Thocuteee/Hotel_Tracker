@@ -4,7 +4,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Star, Heart, ArrowLeft, ShieldCheck, Compass, Info, CheckCircle } from 'lucide-react';
+import { MapPin, Star, Heart, ArrowLeft, ShieldCheck, Compass, Info, CheckCircle, Image, Sparkles } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
 
@@ -61,6 +61,7 @@ function HotelDetailPageContent() {
     { id: 'gallery', label: 'Hình ảnh' },
     { id: 'overview', label: 'Tổng quan' },
     { id: 'amenities', label: 'Tiện nghi' },
+    { id: 'services', label: 'Dịch vụ có phí' },
     { id: 'policies', label: 'Chính sách' },
     { id: 'map', label: 'Bản đồ' },
     { id: 'reviews', label: 'Đánh giá' },
@@ -77,16 +78,46 @@ function HotelDetailPageContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617] pb-24 scroll-smooth">
-      {/* Header Image / Gallery */}
-      <div id="gallery" className="relative w-full h-[400px] md:h-[500px]">
-        <img src={hotel.imageUrl || "https://images.unsplash.com/photo-1542314831-c6a4d14272de?q=80&w=1000&auto=format&fit=crop"} alt={hotel.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20"></div>
+      {/* Header Image / Gallery Grid */}
+      <div id="gallery" className="relative w-full bg-slate-900 overflow-hidden">
+        {hotel.galleryImages && hotel.galleryImages.length > 1 ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[450px] md:h-[550px]">
+            {/* Main image */}
+            <div className="md:col-span-2 relative h-full">
+              <img src={hotel.galleryImages[0] || hotel.imageUrl} className="w-full h-full object-cover animate-in fade-in" alt={hotel.name} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+            </div>
+            {/* Sub images */}
+            <div className="hidden md:grid grid-cols-2 col-span-2 gap-2 h-full">
+              {hotel.galleryImages.slice(1, 5).map((imgUrl: string, idx: number) => (
+                <div key={idx} className="relative h-full overflow-hidden">
+                  <img src={imgUrl} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" alt={`Hotel sub ${idx}`} />
+                  {idx === 3 && hotel.galleryImages.length > 5 && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-lg font-black select-none">
+                      +{hotel.galleryImages.length - 5} ảnh
+                    </div>
+                  )}
+                </div>
+              ))}
+              {hotel.galleryImages.length < 5 && Array.from({ length: 5 - hotel.galleryImages.length }).map((_, idx) => (
+                <div key={idx} className="bg-slate-800 flex items-center justify-center text-slate-600">
+                  <Image className="h-8 w-8 opacity-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="h-[400px] md:h-[500px] relative">
+            <img src={hotel.imageUrl || "https://images.unsplash.com/photo-1542314831-c6a4d14272de?q=80&w=1000&auto=format&fit=crop"} alt={hotel.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20"></div>
+          </div>
+        )}
         
-        <button onClick={() => router.back()} className="absolute top-6 left-6 p-3 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white transition-all">
+        <button onClick={() => router.back()} className="absolute top-6 left-6 p-3 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white transition-all z-10">
           <ArrowLeft className="h-6 w-6" />
         </button>
 
-        <div className="absolute bottom-8 left-6 md:left-12 max-w-3xl">
+        <div className="absolute bottom-8 left-6 md:left-12 max-w-3xl z-10">
           <div className="flex items-center gap-2 mb-2">
             <h1 className="text-4xl md:text-5xl font-black text-white">{hotel.name}</h1>
             {hotel.starRating && (
@@ -157,6 +188,40 @@ function HotelDetailPageContent() {
             </div>
           </section>
 
+          {/* Paid Services Section */}
+          <section id="services" className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 space-y-4">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-600" /> Dịch vụ bổ sung (Có thu phí)
+            </h2>
+            <p className="text-xs text-slate-500">Khách hàng có thể đặt thêm các dịch vụ này trực tiếp trong quá trình lưu trú</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {hotel.services && hotel.services.length > 0 ? (
+                hotel.services.map((item: any, index: number) => (
+                  <div key={index} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} className="h-14 w-14 rounded-xl object-cover shrink-0" alt={item.name} />
+                    ) : (
+                      <div className="h-14 w-14 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 shrink-0">
+                        <Sparkles className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-sm text-slate-800 dark:text-slate-200 block truncate">{item.name}</span>
+                      <p className="text-xs text-slate-500 truncate">{item.description || "Dịch vụ chất lượng cao"}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-400 text-sm col-span-full">Chưa có dịch vụ tính phí bổ sung nào được cấu hình.</p>
+              )}
+            </div>
+          </section>
+
           {/* Policies Section */}
           <section id="policies" className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 space-y-4">
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
@@ -186,10 +251,32 @@ function HotelDetailPageContent() {
               <MapPin className="h-5 w-5 text-indigo-600" /> Vị trí chỗ nghỉ
             </h2>
             {hotel.latitude && hotel.longitude ? (
-              <div className="space-y-2">
-                <p className="text-xs text-slate-500">Tọa độ GPS: Vĩ độ {hotel.latitude}, Kinh độ {hotel.longitude}</p>
-                <div className="h-64 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 text-sm">
-                  [Bản đồ vị trí tọa độ GPS đang hiển thị]
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 gap-3">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Tọa độ địa chỉ</span>
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vĩ độ: {hotel.latitude} | Kinh độ: {hotel.longitude}</p>
+                  </div>
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${hotel.latitude},${hotel.longitude}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-all hover:border-rose-500/30 group"
+                  >
+                    <MapPin className="h-4 w-4 text-rose-500 group-hover:scale-110 transition-transform shrink-0" />
+                    Chỉ đường bằng Google Maps
+                  </a>
+                </div>
+                
+                <div className="h-80 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src={`https://maps.google.com/maps?q=${hotel.latitude},${hotel.longitude}&z=16&output=embed`}
+                    className="w-full h-full border-none"
+                    allowFullScreen
+                    loading="lazy"
+                  ></iframe>
                 </div>
               </div>
             ) : (

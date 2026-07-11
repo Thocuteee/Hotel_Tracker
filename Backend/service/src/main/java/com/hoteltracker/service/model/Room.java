@@ -1,6 +1,7 @@
 package com.hoteltracker.service.model;
 
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.RoomBookingStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +16,7 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "room_number", nullable = false, length = 10, unique = true)
+    @Column(name = "room_number", nullable = false, length = 10)
     private String roomNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -23,9 +24,26 @@ public class Room {
     private RoomType roomType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RoomStatus status;
+    @Column(name = "booking_status")
+    @Builder.Default
+    private RoomBookingStatus bookingStatus = RoomBookingStatus.AVAILABLE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cleaning_status")
+    @Builder.Default
+    private CleaningStatus cleaningStatus = CleaningStatus.CLEAN;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     @Column(nullable = false)
     private Integer floor;
+
+    public RoomBookingStatus getBookingStatus() {
+        return bookingStatus != null ? bookingStatus : RoomBookingStatus.AVAILABLE;
+    }
+
+    public CleaningStatus getCleaningStatus() {
+        return cleaningStatus != null ? cleaningStatus : CleaningStatus.CLEAN;
+    }
 }

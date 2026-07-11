@@ -10,7 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.hoteltracker.service.model.ServiceItem;
+import com.hoteltracker.service.model.Amenity;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/branches")
@@ -53,5 +56,31 @@ public class BranchController {
     public ResponseEntity<Void> deleteBranch(@PathVariable Integer id) {
         branchService.deleteBranch(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/services")
+    public ResponseEntity<Set<ServiceItem>> getBranchServices(@PathVariable Integer id) {
+        return ResponseEntity.ok(branchService.getBranchServices(id));
+    }
+
+    @PutMapping("/{id}/services")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Set<ServiceItem>> updateBranchServices(
+            @PathVariable Integer id,
+            @RequestBody List<Integer> serviceIds) {
+        return ResponseEntity.ok(branchService.updateBranchServices(id, serviceIds));
+    }
+
+    @GetMapping("/{id}/amenities")
+    public ResponseEntity<Set<Amenity>> getBranchAmenities(@PathVariable Integer id) {
+        return ResponseEntity.ok(branchService.getBranchAmenities(id));
+    }
+
+    @PutMapping("/{id}/amenities")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Set<Amenity>> updateBranchAmenities(
+            @PathVariable Integer id,
+            @RequestBody List<Integer> amenityIds) {
+        return ResponseEntity.ok(branchService.updateBranchAmenities(id, amenityIds));
     }
 }

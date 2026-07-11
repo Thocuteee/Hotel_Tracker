@@ -16,6 +16,9 @@ import com.hoteltracker.service.repositories.RoomTypeRepository;
 import com.hoteltracker.service.repositories.ReviewRepository;
 import com.hoteltracker.service.services.PublicService;
 import com.hoteltracker.service.services.RedisLockService;
+
+import java.util.Collections;
+
 import com.hoteltracker.service.model.enums.BranchStatus;
 import com.hoteltracker.service.model.enums.PropertyType;
 import lombok.RequiredArgsConstructor;
@@ -188,6 +191,20 @@ public class PublicServiceImpl implements PublicService {
 
         Branch branch = branchOptional.get();
         HotelDetailResponse hotelDetailResponse = branchMapper.toHotelDetailResponse(branch);
+
+        if (branch.getAmenities() != null) {
+            hotelDetailResponse.setAmenities(branch.getAmenities().stream()
+                    .map(com.hoteltracker.service.model.Amenity::getName)
+                    .collect(Collectors.toList()));
+        } else {
+            hotelDetailResponse.setAmenities(Collections.emptyList());
+        }
+
+        if (branch.getServices() != null) {
+            hotelDetailResponse.setServices(new ArrayList<>(branch.getServices()));
+        } else {
+            hotelDetailResponse.setServices(Collections.emptyList());
+        }
 
         List<com.hoteltracker.service.model.Review> reviews = reviewRepository.findByBookingRoomTypeBranchId(branch.getId());
         if (!reviews.isEmpty()) {

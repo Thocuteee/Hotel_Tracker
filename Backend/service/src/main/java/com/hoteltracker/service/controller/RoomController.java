@@ -4,7 +4,8 @@ import com.hoteltracker.service.dtos.request.RoomRequest;
 import com.hoteltracker.service.dtos.request.RoomTypeRequest;
 import com.hoteltracker.service.dtos.response.RoomResponse;
 import com.hoteltracker.service.dtos.response.RoomTypeResponse;
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.RoomBookingStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import com.hoteltracker.service.services.RoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -60,8 +61,9 @@ public class RoomController {
     @GetMapping("/rooms")
     public ResponseEntity<List<RoomResponse>> getRooms(
             @RequestParam(required = false) Integer roomTypeId,
-            @RequestParam(required = false) RoomStatus status) {
-        return ResponseEntity.ok(roomService.getRooms(roomTypeId, status));
+            @RequestParam(required = false) RoomBookingStatus bookingStatus,
+            @RequestParam(required = false) CleaningStatus cleaningStatus) {
+        return ResponseEntity.ok(roomService.getRooms(roomTypeId, bookingStatus, cleaningStatus));
     }
 
     @PutMapping("/rooms/{id}")

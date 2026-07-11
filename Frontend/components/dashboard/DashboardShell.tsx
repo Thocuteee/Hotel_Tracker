@@ -16,24 +16,40 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const pathname = usePathname();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const getCookie = (name: string) => {
+      if (typeof document === 'undefined') return undefined;
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return undefined;
+    };
+
+    const cookieToken = getCookie('accessToken');
+    const localToken = localStorage.getItem('accessToken');
     const userStr = localStorage.getItem('user');
     
-    if (!token) {
-      router.push('/login');
+    if (!cookieToken || !localToken) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+      document.cookie = "userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+      setIsAuthenticated(false);
+      window.location.href = '/login';
+      return;
+    }
+
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (!user) {
+      window.location.href = '/login';
+    } else if (user.role === 'CUSTOMER') {
+      window.location.href = '/';
     } else {
-      const user = userStr ? JSON.parse(userStr) : null;
-      if (!user) {
-        router.push('/login');
-      } else if (user.role === 'CUSTOMER') {
-        router.push('/');
+      const allowedRoles = routePermissions[pathname];
+      if (allowedRoles && !allowedRoles.includes(user.role)) {
+        router.push('/admin');
       } else {
-        const allowedRoles = routePermissions[pathname];
-        if (allowedRoles && !allowedRoles.includes(user.role)) {
-          router.push('/admin');
-        } else {
-          setIsAuthenticated(true);
-        }
+        setIsAuthenticated(true);
       }
     }
   }, [router, pathname]);

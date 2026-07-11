@@ -6,8 +6,10 @@ import com.hoteltracker.service.dtos.response.HotelCardResponse;
 import com.hoteltracker.service.dtos.response.HotelDetailResponse;
 import com.hoteltracker.service.model.Branch;
 import org.springframework.stereotype.Component;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 public class BranchMapper {
@@ -31,6 +33,9 @@ public class BranchMapper {
                 .checkOutTime(branch.getCheckOutTime() != null ? branch.getCheckOutTime() : "12:00")
                 .latitude(branch.getLatitude())
                 .longitude(branch.getLongitude())
+                .website(branch.getWebsite())
+                .slug(branch.getSlug())
+                .galleryImages(branch.getGalleryImages())
                 .build();
     }
 
@@ -64,10 +69,24 @@ public class BranchMapper {
         response.setCheckInTime(branch.getCheckInTime() != null ? branch.getCheckInTime() : "14:00");
         response.setCheckOutTime(branch.getCheckOutTime() != null ? branch.getCheckOutTime() : "12:00");
         response.setStarRating(branch.getStarRating() != null ? branch.getStarRating() : 4);
-        // Giả sử galleryImages được lưu dưới dạng JSON trong một trường nào đó hoặc cần logic riêng
-        response.setGalleryImages(Collections.emptyList()); 
+        
+        // Parse galleryImages JSON array
+        if (branch.getGalleryImages() != null && !branch.getGalleryImages().trim().isEmpty()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<String> list = mapper.readValue(branch.getGalleryImages(), new TypeReference<List<String>>(){});
+                response.setGalleryImages(list);
+            } catch (Exception e) {
+                response.setGalleryImages(Collections.singletonList(branch.getImageUrl()));
+            }
+        } else {
+            response.setGalleryImages(Collections.singletonList(branch.getImageUrl()));
+        }
+
         // roomTypes sẽ được set trong service
         response.setRoomTypes(Collections.emptyList());
+        response.setWebsite(branch.getWebsite());
+        response.setSlug(branch.getSlug());
         return response;
     }
 
@@ -89,6 +108,9 @@ public class BranchMapper {
                 .checkOutTime(request.getCheckOutTime() != null ? request.getCheckOutTime() : "12:00")
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .website(request.getWebsite())
+                .slug(request.getSlug())
+                .galleryImages(request.getGalleryImages())
                 .build();
     }
 }

@@ -97,6 +97,7 @@ function CheckoutContent() {
   
   // Custom timer speeds for demo purposes
   const [timerSpeed, setTimerSpeed] = useState(1); // multiplier
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
 
   // 15-minute Countdown Timer
   useEffect(() => {
@@ -137,6 +138,11 @@ function CheckoutContent() {
     if (!roomType) return;
     setIsEstablishingLock(true);
     
+    // Resolve dynamic customer ID
+    const userStr = localStorage.getItem('user');
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const customerIdVal = currentUser?.id || 1;
+
     try {
       const api = (await import('@/lib/api')).default;
       const res = await api.post('/api/v1/bookings/lock', {
@@ -155,13 +161,11 @@ function CheckoutContent() {
           numAdults: 2,
           numChildren: 0,
           specialRequests: guestName + " - " + guestPhone,
-          customerId: 1 // Default customerId for demo
+          customerId: customerIdVal
         }, { params: { lockKey: res.data.lockKey } });
         
+        setCreatedBooking(createRes.data);
         setBookingStatus('SUCCESS');
-        setTimeout(() => {
-          router.push('/bookings');
-        }, 2500);
       } else {
         setLockEstablished(true);
         setBookingStatus('PENDING');
@@ -176,6 +180,11 @@ function CheckoutContent() {
   const handleSimulateWebhook = async (type: 'ON_TIME' | 'LATE') => {
     if (!roomType) return;
     
+    // Resolve dynamic customer ID
+    const userStr = localStorage.getItem('user');
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const customerIdVal = currentUser?.id || 1;
+
     if (type === 'ON_TIME') {
       if (timeLeft <= 0) {
         alert('Không thể thanh toán đúng hạn vì khóa giữ chỗ đã hết hạn!');
@@ -183,20 +192,18 @@ function CheckoutContent() {
       }
       try {
         const api = (await import('@/lib/api')).default;
-        await api.post('/api/v1/bookings', {
+        const createRes = await api.post('/api/v1/bookings', {
           roomTypeId: roomType.id,
           checkInDate: checkInDate.toISOString().split('T')[0],
           checkOutDate: checkOutDate.toISOString().split('T')[0],
           numAdults: 2,
           numChildren: 0,
           specialRequests: guestName + " - " + guestPhone,
-          customerId: 1 // Default customerId for demo
+          customerId: customerIdVal
         }, { params: { lockKey: lockKey } });
         
+        setCreatedBooking(createRes.data);
         setBookingStatus('SUCCESS');
-        setTimeout(() => {
-          router.push('/bookings');
-        }, 2500);
       } catch (err: any) {
         alert(err.response?.data?.message || 'Lỗi khi tạo booking');
       }
@@ -295,20 +302,53 @@ function CheckoutContent() {
               )}
 
               {bookingStatus === 'SUCCESS' && (
-                <div className="space-y-4 py-8 animate-in zoom-in-95 duration-300">
-                  <div className="h-16 w-16 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="h-10 w-10" />
+                <div className="space-y-6 py-6 animate-in zoom-in-95 duration-300">
+                  <div className="h-16 w-16 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-10 w-10 animate-bounce" />
                   </div>
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                     {paymentMethod === 'cash' ? 'Đặt phòng thành công!' : 'Thanh toán thành công!'}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  <p className="text-sm text-slate-500 max-w-sm mx-auto">
                     {paymentMethod === 'cash'
-                      ? 'Yêu cầu đặt phòng đã được ghi nhận. Quý khách vui lòng chuẩn bị tiền mặt thanh toán tại quầy khi check-in. Đang chuyển hướng...'
-                      : 'Hệ thống đã nhận được webhook phản hồi. Giao dịch thành công trước thời hạn khóa. Đang chuyển hướng...'}
+                      ? 'Yêu cầu đặt phòng đã được ghi nhận. Vui lòng thanh toán trực tiếp tại quầy khi check-in.'
+                      : 'Hệ thống đã nhận được phản hồi thanh toán thành công.'}
                   </p>
-                  <div className="inline-flex items-center gap-2 text-xs font-bold text-indigo-650 animate-pulse">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Đang chuyển hướng...
+                  
+                  {createdBooking && (
+                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-left space-y-3 max-w-md mx-auto text-sm text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="font-bold text-slate-500">Mã đặt phòng:</span>
+                        <span className="font-black text-indigo-650 dark:text-indigo-400">HT000{createdBooking.id}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="font-bold text-slate-500">Trạng thái:</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{createdBooking.status}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="font-bold text-slate-500">Ngày nhận phòng:</span>
+                        <span>{new Date(createdBooking.checkInDate).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-bold text-slate-500">Tổng tiền:</span>
+                        <span className="font-black text-slate-900 dark:text-white">{createdBooking.totalPrice?.toLocaleString('vi-VN')} đ</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex flex-col gap-2 max-w-sm mx-auto">
+                    <button 
+                      onClick={() => router.push('/bookings')}
+                      className="w-full h-11 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-500 transition-colors shadow-sm"
+                    >
+                      Xem đơn đặt phòng
+                    </button>
+                    <Link 
+                      href="/"
+                      className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-white underline transition-colors"
+                    >
+                      Quay về trang chủ
+                    </Link>
                   </div>
                 </div>
               )}

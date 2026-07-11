@@ -1,7 +1,7 @@
 package com.hoteltracker.service.controller;
 
 import com.hoteltracker.service.dtos.response.RoomResponse;
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import com.hoteltracker.service.services.RoomService;
 import com.hoteltracker.service.exceptions.ResourceNotFoundException;
 import com.hoteltracker.service.model.Room;
@@ -27,7 +27,7 @@ public class HousekeepingController {
     @GetMapping("/rooms")
     public ResponseEntity<List<RoomResponse>> getRoomsToClean() {
         List<RoomResponse> rooms = roomRepository.findAll().stream()
-                .filter(r -> r.getStatus() == RoomStatus.DIRTY || r.getStatus() == RoomStatus.CLEANING)
+                .filter(r -> r.getCleaningStatus() == CleaningStatus.DIRTY || r.getCleaningStatus() == CleaningStatus.CLEANING)
                 .map(roomMapper::toResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(rooms);
@@ -36,12 +36,12 @@ public class HousekeepingController {
     @PatchMapping("/rooms/{roomId}/status")
     public ResponseEntity<RoomResponse> updateRoomStatus(
             @PathVariable Integer roomId,
-            @RequestParam RoomStatus status) {
+            @RequestParam CleaningStatus status) {
         
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng ID: " + roomId));
         
-        room.setStatus(status);
+        room.setCleaningStatus(status);
         Room savedRoom = roomRepository.save(room);
         RoomResponse response = roomMapper.toResponse(savedRoom);
 

@@ -9,7 +9,8 @@ import com.hoteltracker.service.model.Booking;
 import com.hoteltracker.service.model.Room;
 import com.hoteltracker.service.model.User;
 import com.hoteltracker.service.model.enums.BookingStatus;
-import com.hoteltracker.service.model.enums.RoomStatus;
+import com.hoteltracker.service.model.enums.RoomBookingStatus;
+import com.hoteltracker.service.model.enums.CleaningStatus;
 import com.hoteltracker.service.repositories.BookingRepository;
 import com.hoteltracker.service.repositories.RoomRepository;
 import com.hoteltracker.service.repositories.UserRepository;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -113,11 +115,11 @@ public class BookingServiceImpl implements BookingService {
         if (request.getRoomId() != null) {
             Room room = roomRepository.findById(request.getRoomId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Phòng"));
-            if (room.getStatus() != RoomStatus.AVAILABLE) {
-                throw new BadRequestException("Phòng vật lý này không khả dụng!");
+            if (room.getBookingStatus() != RoomBookingStatus.AVAILABLE || room.getCleaningStatus() != CleaningStatus.CLEAN) {
+                throw new BadRequestException("Phòng vật lý này không khả dụng hoặc chưa được dọn dẹp sạch sẽ!");
             }
             booking.setRoom(room);
-            room.setStatus(RoomStatus.OCCUPIED);
+            room.setBookingStatus(RoomBookingStatus.OCCUPIED);
             roomRepository.save(room);
             booking.setStatus(BookingStatus.CHECKED_IN);
         } else {
@@ -153,12 +155,29 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse updateStatus(Integer id, BookingStatus status) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Booking ID: " + id));
+        
+        if (status == BookingStatus.CANCELLED) {
+            if (booking.getStatus() == BookingStatus.CHECKED_IN || 
+                booking.getStatus() == BookingStatus.CHECKED_OUT || 
+                booking.getStatus() == BookingStatus.CANCELLED) {
+                throw new BadRequestException("Không thể hủy đơn đặt phòng đang ở trạng thái: " + booking.getStatus());
+            }
+            if (booking.getStatus() == BookingStatus.CONFIRMED && !LocalDate.now().isBefore(booking.getCheckInDate())) {
+                throw new BadRequestException("Chỉ được hủy đơn đặt phòng đã xác nhận trước ngày nhận phòng tối thiểu 24 giờ!");
+            }
+        }
+
         booking.setStatus(status);
         
         if (status == BookingStatus.CHECKED_OUT || status == BookingStatus.CANCELLED) {
             Room room = booking.getRoom();
             if (room != null) {
-                room.setStatus(status == BookingStatus.CHECKED_OUT ? RoomStatus.DIRTY : RoomStatus.AVAILABLE);
+                if (status == BookingStatus.CHECKED_OUT) {
+                    room.setBookingStatus(RoomBookingStatus.AVAILABLE);
+                    room.setCleaningStatus(CleaningStatus.DIRTY);
+                } else {
+                    room.setBookingStatus(RoomBookingStatus.AVAILABLE);
+                }
                 roomRepository.save(room);
             }
         }
@@ -215,7 +234,7 @@ public class BookingServiceImpl implements BookingService {
         
         Room room = booking.getRoom();
         if (room != null) {
-            room.setStatus(RoomStatus.AVAILABLE);
+            room.setBookingStatus(RoomBookingStatus.AVAILABLE);
             roomRepository.save(room);
         }
 
